@@ -28,8 +28,6 @@
 
 	<!-- Folder structure -->
 	<ItemGroup>
-		<Folder Include="Views\" />
-		<Folder Include="ViewModels\" />
 		<Folder Include="wwwroot\css\" />
 		<Folder Include="wwwroot\js\" />
 		<Folder Include="wwwroot\lib\" />

@@ -1,5 +1,6 @@
 ﻿using HRMS.Core.Entities;
 using HRMS.Core.Enums;
+using System.Linq.Expressions;
 
 namespace HRMS.Core.Specifications
 {
@@ -13,7 +14,7 @@ namespace HRMS.Core.Specifications
         }
 
         public EmployeeWithDepartmentSpecification(string departmentName)
-            : base(e => e.Department.Name.Contains(departmentName))
+            : base(e => e.Department != null && e.Department.Name != null && e.Department.Name.Contains(departmentName))
         {
             AddInclude(e => e.Department);
             ApplyOrderBy(e => e.LastName);
@@ -26,6 +27,7 @@ namespace HRMS.Core.Specifications
             : base(e => e.Status == EmployeeStatus.Active)
         {
             ApplyOrderBy(e => e.LastName);
+            AddInclude(e => e.Department);
         }
     }
 
@@ -35,6 +37,7 @@ namespace HRMS.Core.Specifications
             : base(e => e.DepartmentId == departmentId)
         {
             AddInclude(e => e.Department);
+            AddInclude(e => e.Manager);
         }
     }
 
@@ -42,6 +45,16 @@ namespace HRMS.Core.Specifications
     {
         public EmployeesByManagerSpecification(int managerId)
             : base(e => e.ManagerId == managerId)
+        {
+            AddInclude(e => e.Department);
+            AddInclude(e => e.Manager);
+        }
+    }
+
+    public class EmployeesByStatusSpecification : BaseSpecification<Employee>
+    {
+        public EmployeesByStatusSpecification(EmployeeStatus status)
+            : base(e => e.Status == status)
         {
             AddInclude(e => e.Department);
         }

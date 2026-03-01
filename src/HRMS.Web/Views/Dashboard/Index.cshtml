@@ -1,0 +1,268 @@
+﻿@model DashboardDto
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>@Model.TotalEmployees</h3>
+                <p>Total Employees</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <a href="@Url.Action("Index", "Employee")" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>@Model.ActiveEmployees</h3>
+                <p>Active Employees</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>@Model.EmployeesOnLeave</h3>
+                <p>On Leave Today</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>@Model.PendingLeaveRequests</h3>
+                <p>Pending Approvals</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    Employee Growth
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="employeeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-building mr-1"></i>
+                    Department Distribution
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="departmentChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-clock mr-1"></i>
+                    Recent Activities
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="products-list product-list-in-card pl-2 pr-2">
+                    @foreach (var activity in Model.RecentActivities.Take(5))
+                    {
+                        <li class="item">
+                            <div class="product-img">
+                                <span class="badge badge-@activity.Color p-3">
+                                    <i class="fas fa-@activity.Icon"></i>
+                                </span>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-title">
+                                    @activity.Description
+                                    <span class="badge badge-@activity.Color float-right">@activity.ActivityType</span>
+                                </div>
+                                <span class="product-description">
+                                    <i class="far fa-clock mr-1"></i> @activity.Timestamp.ToString("MMM dd, yyyy HH:mm")
+                                </span>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                <a href="#" class="uppercase">View All Activities</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-calendar-alt mr-1"></i>
+                    Upcoming Leaves
+                </h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upcomingLeaves">
+                        <!-- Loaded via AJAX -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            loadDashboardCharts();
+            loadUpcomingLeaves();
+        });
+
+        function loadDashboardCharts() {
+            // Employee Growth Chart
+            $.get('@Url.Action("GetEmployeeChartData", "Dashboard")', function(data) {
+                new Chart(document.getElementById('employeeChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Total Employees',
+                            data: data.values,
+                            borderColor: 'rgba(60,141,188,0.8)',
+                            backgroundColor: 'rgba(60,141,188,0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Department Distribution Chart
+            $.get('@Url.Action("GetStatistics", "Dashboard")', function(data) {
+                var deptData = data.employeeCountByDepartment;
+                var labels = deptData.map(d => d.department);
+                var values = deptData.map(d => d.count);
+
+                new Chart(document.getElementById('departmentChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#f56954', '#00a65a', '#f39c12', '#00c0ef',
+                                '#3c8dbc', '#d2d6de', '#605ca8', '#ff851b'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function loadUpcomingLeaves() {
+            $.get('@Url.Action("GetUpcomingLeaves", "Leave")', function(data) {
+                var tbody = $('#upcomingLeaves');
+                tbody.empty();
+
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="3" class="text-center">No upcoming leaves</td></tr>');
+                } else {
+                    data.forEach(function(leave) {
+                        var row = `<tr>
+                            <td>${leave.employeeName}</td>
+                            <td><span class="badge badge-info">${leave.leaveTypeName}</span></td>
+                            <td>${moment(leave.startDate).format('MMM DD')} - ${moment(leave.endDate).format('MMM DD, YYYY')}</td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                }
+            });
+        }
+    </script>
+}

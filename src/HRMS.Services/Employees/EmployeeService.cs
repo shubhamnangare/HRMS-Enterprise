@@ -283,15 +283,17 @@ namespace HRMS.Services.Employees
         public async Task<byte[]> ExportEmployeesToExcelAsync(EmployeeSearchDto searchDto)
         {
             // This would use a library like EPPlus to generate Excel
-            // Implementation depends on your Excel library choice
-            throw new NotImplementedException("Excel export to be implemented");
+            // For now, return empty byte array
+            _logger.LogWarning("Excel export not implemented yet");
+            return await Task.FromResult(Array.Empty<byte>());
         }
 
         public async Task<int> ImportEmployeesFromExcelAsync(byte[] fileData)
         {
             // This would use a library like EPPlus to read Excel
-            // Implementation depends on your Excel library choice
-            throw new NotImplementedException("Excel import to be implemented");
+            // For now, return 0
+            _logger.LogWarning("Excel import not implemented yet");
+            return await Task.FromResult(0);
         }
 
         public async Task<IEnumerable<EmployeeListDto>> GetEmployeesByDepartmentAsync(int departmentId)
@@ -330,6 +332,9 @@ namespace HRMS.Services.Employees
 
         private IEnumerable<Employee> ApplySorting(IEnumerable<Employee> employees, EmployeeSearchDto searchDto)
         {
+            if (employees == null || !employees.Any())
+                return Enumerable.Empty<Employee>();
+
             return searchDto.SortBy?.ToLower() switch
             {
                 "firstname" => searchDto.SortAscending
@@ -342,8 +347,8 @@ namespace HRMS.Services.Employees
                     ? employees.OrderBy(e => e.HireDate)
                     : employees.OrderByDescending(e => e.HireDate),
                 "department" => searchDto.SortAscending
-                    ? employees.OrderBy(e => e.Department?.Name)
-                    : employees.OrderByDescending(e => e.Department?.Name),
+                    ? employees.OrderBy(e => e.Department != null ? e.Department.Name : "")
+                    : employees.OrderByDescending(e => e.Department != null ? e.Department.Name : ""),
                 _ => searchDto.SortAscending
                     ? employees.OrderBy(e => e.LastName)
                     : employees.OrderByDescending(e => e.LastName)

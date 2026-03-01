@@ -26,9 +26,12 @@ namespace HRMS.Web.Controllers
             TempData["Info"] = message;
         }
 
-        protected IActionResult HandleException(Exception ex, string customMessage = null)
+        protected IActionResult HandleException(Exception ex, string? customMessage = null)
         {
             // Log the exception here
+            var logger = HttpContext.RequestServices.GetRequiredService<ILogger<BaseController>>();
+            logger.LogError(ex, "An error occurred: {Message}", ex.Message);
+
             var message = customMessage ?? "An error occurred while processing your request.";
             AddErrorMessage(message);
 
