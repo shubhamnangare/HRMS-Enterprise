@@ -42,25 +42,40 @@ namespace HRMS.Services.Mappings
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // Department mappings
+            // Department mappings
             CreateMap<Department, DepartmentDto>()
                 .ForMember(dest => dest.ManagerName,
                     opt => opt.MapFrom(src => src.Manager != null ? src.Manager.FullName : null))
                 .ForMember(dest => dest.EmployeeCount,
-                    opt => opt.MapFrom(src => src.Employees.Count));
+                    opt => opt.MapFrom(src => src.Employees != null ? src.Employees.Count : 0));
 
             CreateMap<Department, DepartmentListDto>()
                 .ForMember(dest => dest.ManagerName,
                     opt => opt.MapFrom(src => src.Manager != null ? src.Manager.FullName : null))
                 .ForMember(dest => dest.EmployeeCount,
-                    opt => opt.MapFrom(src => src.Employees.Count));
+                    opt => opt.MapFrom(src => src.Employees != null ? src.Employees.Count : 0));
 
             CreateMap<Department, DepartmentDetailDto>()
                 .IncludeBase<Department, DepartmentDto>()
                 .ForMember(dest => dest.Employees,
                     opt => opt.MapFrom(src => src.Employees));
 
-            CreateMap<CreateDepartmentDto, Department>();
-            CreateMap<UpdateDepartmentDto, Department>();
+            CreateMap<CreateDepartmentDto, Department>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.RowVersion, opt => opt.Ignore())
+                .ForMember(dest => dest.Manager, opt => opt.Ignore())
+                .ForMember(dest => dest.Employees, opt => opt.Ignore());
+
+            CreateMap<UpdateDepartmentDto, Department>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.RowVersion, opt => opt.Ignore())
+                .ForMember(dest => dest.Manager, opt => opt.Ignore())
+                .ForMember(dest => dest.Employees, opt => opt.Ignore())
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // Leave mappings
             CreateMap<LeaveRequest, LeaveRequestDto>()
