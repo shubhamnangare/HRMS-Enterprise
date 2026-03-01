@@ -1,0 +1,191 @@
+﻿@using HRMS.Core.Enums
+@model IEnumerable<EmployeeListDto>
+@{
+    ViewData["Title"] = "Employees";
+    var searchDto = ViewBag.SearchDto as EmployeeSearchDto ?? new EmployeeSearchDto();
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-users mr-2"></i> Employee Directory
+        </h3>
+        <div class="card-tools">
+            <a href="@Url.Action("Create")" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Add New Employee
+            </a>
+            <button class="btn btn-success btn-sm" onclick="exportToExcel('@Url.Action("Export")')">
+                <i class="fas fa-file-excel"></i> Export
+            </button>
+            <button class="btn btn-info btn-sm" onclick="$('#importModal').modal('show')">
+                <i class="fas fa-file-import"></i> Import
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Search Filter -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <form method="get" class="form-inline">
+                    <div class="input-group w-100">
+                        <input type="text" name="SearchTerm" class="form-control" 
+                               placeholder="Search by name, email, or employee code..." 
+                               value="@searchDto.SearchTerm">
+                        <select name="DepartmentId" class="form-control select2" style="width: 200px;">
+                            <option value="">All Departments</option>
+                            @foreach (var dept in ViewBag.Departments as IEnumerable<DepartmentListDto> ?? new List<DepartmentListDto>())
+                            {
+                                <option value="@dept.Id" selected="@(searchDto.DepartmentId == dept.Id)">@dept.Name</option>
+                            }
+                        </select>
+                        <select name="Status" class="form-control" style="width: 150px;">
+    <option value="">All Status</option>
+    <option value="1" selected="@(searchDto.Status.HasValue && searchDto.Status.Value == EmployeeStatus.Active ? "selected" : null)">Active</option>
+    <option value="2" selected="@(searchDto.Status.HasValue && searchDto.Status.Value == EmployeeStatus.Inactive ? "selected" : null)">Inactive</option>
+    <option value="3" selected="@(searchDto.Status.HasValue && searchDto.Status.Value == EmployeeStatus.OnLeave ? "selected" : null)">On Leave</option>
+    <option value="4" selected="@(searchDto.Status.HasValue && searchDto.Status.Value == EmployeeStatus.Terminated ? "selected" : null)">Terminated</option>
+    <option value="5" selected="@(searchDto.Status.HasValue && searchDto.Status.Value == EmployeeStatus.Resigned ? "selected" : null)">Resigned</option>
+</select>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover dataTable">
+                <thead>
+                    <tr>
+                        <th>Employee Code</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Job Title</th>
+                        <th>Status</th>
+                        <th width="150">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var emp in Model)
+                        {
+                            <tr>
+                                <td><span class="badge badge-secondary">@emp.EmployeeCode</span></td>
+                                <td>@emp.FullName</td>
+                                <td>@emp.Email</td>
+                                <td>@emp.DepartmentName</td>
+                                <td>@emp.JobTitle</td>
+                                <td>
+                                    <span class="badge badge-@emp.StatusBadgeClass">@emp.Status</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="@Url.Action("Details", new { id = emp.Id })" 
+                                           class="btn btn-info btn-sm" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="@Url.Action("Edit", new { id = emp.Id })" 
+                                           class="btn btn-warning btn-sm" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <button type="button" 
+                                                    onclick="confirmDelete('deleteForm_@emp.Id', '@emp.FullName')" 
+                                                    class="btn btn-danger btn-sm" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <form id="deleteForm_@emp.Id" 
+                                                  asp-action="Delete" 
+                                                  asp-route-id="@emp.Id" 
+                                                  method="post" 
+                                                  style="display:none;">
+                                                @Html.AntiForgeryToken()
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">No employees found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { 
+                                pageNumber = i, 
+                                searchTerm = searchDto.SearchTerm,
+                                departmentId = searchDto.DepartmentId,
+                                status = searchDto.Status
+                            })">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Employees</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select Excel/CSV File</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        <small class="text-muted">
+                            <a href="/templates/employee-import-template.xlsx">Download Template</a>
+                        </small>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Please ensure your file follows the template format.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[title]').tooltip();
+        });
+    </script>
+}

@@ -1,0 +1,114 @@
+﻿@model UpdateDepartmentDto
+@{
+    ViewData["Title"] = "Edit Department";
+    var managers = ViewBag.Managers as IEnumerable<EmployeeListDto> ?? new List<EmployeeListDto>();
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-edit mr-2"></i> Edit Department: @Model.Name
+        </h3>
+        <div class="card-tools">
+            <a href="@Url.Action("Index")" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" method="post" id="departmentForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Code" class="form-label">Department Code <span class="text-danger">*</span></label>
+                    <input asp-for="Code" class="form-control" required>
+                    <span asp-validation-for="Code" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Name" class="form-label">Department Name <span class="text-danger">*</span></label>
+                    <input asp-for="Name" class="form-control" required>
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label asp-for="Description" class="form-label">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Location" class="form-label">Location</label>
+                    <input asp-for="Location" class="form-control">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Phone" class="form-label">Phone</label>
+                    <input asp-for="Phone" class="form-control">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Email" class="form-label">Email</label>
+                    <input asp-for="Email" type="email" class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ManagerId" class="form-label">Department Manager</label>
+                    <select asp-for="ManagerId" class="form-control select2">
+                        <option value="">-- Select Manager --</option>
+                        @foreach (var mgr in managers)
+                        {
+                            <option value="@mgr.Id" selected="@(Model.ManagerId == mgr.Id)">@mgr.FullName - @mgr.JobTitle</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Budget" class="form-label">Annual Budget</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input asp-for="Budget" type="number" step="1000" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> Update Department
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Check department code uniqueness (excluding current)
+            $('#Code').on('blur', function() {
+                var code = $(this).val();
+                var id = $('#Id').val();
+                if (code) {
+                    $.get('@Url.Action("CheckCode")', { code: code, id: id }, function(isUnique) {
+                        if (!isUnique) {
+                            $('#Code').addClass('is-invalid');
+                            if ($('#code-error').length === 0) {
+                                $('#Code').after('<span id="code-error" class="text-danger">Department code already exists</span>');
+                            }
+                        } else {
+                            $('#Code').removeClass('is-invalid');
+                            $('#code-error').remove();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

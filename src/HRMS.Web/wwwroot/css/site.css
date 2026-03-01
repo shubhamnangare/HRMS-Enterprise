@@ -1,13 +1,136 @@
-/* Sidebar Styles */
+/* Fix sidebar height and layout */
+.wrapper {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
 .main-sidebar {
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1038;
     background: linear-gradient(180deg, #1e282c 0%, #2c3e50 100%);
 }
 
-.brand-link {
-    background: rgba(0, 0, 0, 0.2);
+.content-wrapper {
+    min-height: calc(100vh - 57px);
+    background-color: #f4f6f9;
+    margin-left: 250px;
+    transition: margin-left 0.3s ease-in-out;
 }
 
-/* Card Styles */
+/* When sidebar is collapsed */
+.sidebar-collapse .content-wrapper,
+.sidebar-collapse .main-footer {
+    margin-left: 0;
+}
+
+.main-footer {
+    margin-left: 250px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Fix for mobile */
+@media (max-width: 767.98px) {
+    .content-wrapper,
+    .main-footer {
+        margin-left: 0;
+    }
+
+    .main-sidebar {
+        transform: translateX(-250px);
+    }
+
+    .sidebar-open .main-sidebar {
+        transform: translateX(0);
+    }
+}
+
+/* Fix user panel */
+.user-panel {
+    position: relative;
+    padding: 10px;
+    border-bottom: 1px solid #4f5962;
+}
+
+    .user-panel .image img {
+        width: 2.1rem;
+        height: 2.1rem;
+        object-fit: cover;
+    }
+
+    .user-panel .info {
+        display: inline-block;
+        padding: 5px 5px 5px 10px;
+        color: #fff;
+    }
+
+        .user-panel .info a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+            .user-panel .info a:hover {
+                text-decoration: underline;
+            }
+
+/* Fix sidebar search */
+.form-control-sidebar {
+    background-color: #3a4248;
+    border-color: #4f5962;
+    color: #fff;
+}
+
+    .form-control-sidebar:focus {
+        background-color: #4f5962;
+        border-color: #007bff;
+        box-shadow: none;
+    }
+
+.btn-sidebar {
+    background-color: #3a4248;
+    border-color: #4f5962;
+    color: #adb5bd;
+}
+
+    .btn-sidebar:hover {
+        background-color: #4f5962;
+        color: #fff;
+    }
+
+/* Fix navigation */
+.nav-sidebar .nav-item > .nav-link {
+    margin-left: 5px;
+    margin-right: 5px;
+    border-radius: 5px;
+}
+
+    .nav-sidebar .nav-item > .nav-link .right {
+        transition: transform 0.3s ease-in-out;
+    }
+
+.nav-sidebar .nav-item.menu-open > .nav-link .right {
+    transform: rotate(-90deg);
+}
+
+/* Active menu items */
+.nav-sidebar .nav-item > .nav-link.active {
+    background-color: #007bff;
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0,123,255,0.5);
+}
+
+.nav-sidebar .nav-treeview .nav-item > .nav-link.active {
+    background-color: rgba(0,123,255,0.2);
+    color: #007bff;
+}
+
+    .nav-sidebar .nav-treeview .nav-item > .nav-link.active i {
+        color: #007bff;
+    }
+
+/* Card styles */
 .card {
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -18,7 +141,7 @@
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
     }
 
-/* Table Styles */
+/* Table styles */
 .table th {
     border-top: none;
     background: #f8f9fa;
@@ -30,7 +153,7 @@
     background: rgba(59, 124, 255, 0.05);
 }
 
-/* Button Styles */
+/* Button styles */
 .btn {
     border-radius: 6px;
     font-weight: 500;
@@ -48,27 +171,14 @@
         box-shadow: 0 4px 10px rgba(59, 124, 255, 0.3);
     }
 
-/* Form Styles */
-.form-control, .form-select {
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
-    padding: 0.5rem 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-    .form-control:focus, .form-select:focus {
-        border-color: #3b7cff;
-        box-shadow: 0 0 0 0.2rem rgba(59, 124, 255, 0.25);
-    }
-
-/* Badge Styles */
+/* Badge styles */
 .badge {
     padding: 0.5rem 0.8rem;
     font-weight: 500;
     border-radius: 6px;
 }
 
-/* Alert Styles */
+/* Alert styles */
 .alert {
     border-radius: 8px;
     border-left: 4px solid;
@@ -90,27 +200,7 @@
     border-left-color: #17a2b8;
 }
 
-/* Loading Spinner */
-.spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #3b7cff;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Product List (for recent activities) */
+/* Product list (for recent activities) */
 .products-list {
     list-style: none;
     margin: 0;
@@ -146,3 +236,35 @@
         color: #6c757d;
         font-size: 0.875rem;
     }
+
+/* Fix for navbar */
+.main-header {
+    border-bottom: 1px solid #dee2e6;
+    z-index: 1030;
+}
+
+/* Fix for breadcrumb */
+.breadcrumb {
+    background: transparent;
+    padding: 0.75rem 0;
+}
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b7cff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
