@@ -1,268 +1,384 @@
-﻿@model DashboardDto
+﻿@model HRMS.Services.Dashboard.Dtos.DashboardDto
 @{
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="row">
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <h3>@Model.TotalEmployees</h3>
-                <p>Total Employees</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <a href="@Url.Action("Index", "Employee")" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>@Model.ActiveEmployees</h3>
-                <p>Active Employees</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-user-check"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3>@Model.EmployeesOnLeave</h3>
-                <p>On Leave Today</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <h3>@Model.PendingLeaveRequests</h3>
-                <p>Pending Approvals</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-line mr-1"></i>
-                    Employee Growth
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
+<!-- Top Row: Welcome + Weather -->
+<div class="row g-4 mb-4">
+    <!-- Welcome Card -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm bg-gradient-primary text-white h-100">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="display-6 fw-bold mb-3">Welcome back, Admin! 👋</h1>
+                        <p class="text-white-50 mb-0 fs-5">Here's what's happening with your organization today.</p>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <div class="bg-white bg-opacity-10 rounded-4 px-4 py-3">
+                            <i class="far fa-calendar-alt me-2"></i> @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <canvas id="employeeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
-            </div>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-building mr-1"></i>
-                    Department Distribution
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
+    <!-- Weather Card -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm bg-dark text-white h-100">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="weather-icon me-3">
+                        <i class="fas fa-sun fa-3x text-warning"></i>
+                    </div>
+                    <div>
+                        <h2 class="display-5 fw-bold mb-0">21°C</h2>
+                        <p class="text-white-50 mb-0">Hot days ahead</p>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body">
-                <canvas id="departmentChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                <div class="d-flex justify-content-between text-white-50 small">
+                    <span><i class="fas fa-map-marker-alt me-1"></i> Mumbai, IN</span>
+                    <span><i class="far fa-clock me-1"></i> @DateTime.Now.ToString("hh:mm tt")</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-clock mr-1"></i>
-                    Recent Activities
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <!-- Total Employees -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon bg-primary me-3">
+                        <i class="fas fa-users text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted text-uppercase small fw-semibold">Total Employees</span>
+                        <h2 class="fw-bold mb-0">@Model.TotalEmployees</h2>
+                    </div>
                 </div>
-            </div>
-            <div class="card-body p-0">
-                <ul class="products-list product-list-in-card pl-2 pr-2">
-                    @foreach (var activity in Model.RecentActivities.Take(5))
-                    {
-                        <li class="item">
-                            <div class="product-img">
-                                <span class="badge badge-@activity.Color p-3">
-                                    <i class="fas fa-@activity.Icon"></i>
-                                </span>
-                            </div>
-                            <div class="product-info">
-                                <div class="product-title">
-                                    @activity.Description
-                                    <span class="badge badge-@activity.Color float-right">@activity.ActivityType</span>
-                                </div>
-                                <span class="product-description">
-                                    <i class="far fa-clock mr-1"></i> @activity.Timestamp.ToString("MMM dd, yyyy HH:mm")
-                                </span>
-                            </div>
-                        </li>
-                    }
-                </ul>
-            </div>
-            <div class="card-footer text-center">
-                <a href="#" class="uppercase">View All Activities</a>
+                <div class="d-flex align-items-center pt-2 border-top">
+                    <span class="badge bg-success bg-opacity-10 text-success me-2">
+                        <i class="fas fa-arrow-up me-1"></i>12%
+                    </span>
+                    <span class="text-muted small">vs last month</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-calendar-alt mr-1"></i>
-                    Upcoming Leaves
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
+    <!-- Active Employees -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon bg-success me-3">
+                        <i class="fas fa-user-check text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted text-uppercase small fw-semibold">Active Employees</span>
+                        <h2 class="fw-bold mb-0">@Model.ActiveEmployees</h2>
+                    </div>
+                </div>
+                <div class="pt-2 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small">Active rate</span>
+                        <span class="fw-medium small">@(Model.TotalEmployees > 0 ? Math.Round((Model.ActiveEmployees * 100.0 / Model.TotalEmployees), 1) : 0)%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: @(Model.TotalEmployees > 0 ? (Model.ActiveEmployees * 100 / Model.TotalEmployees) : 0)%">
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- On Leave Today -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon bg-warning me-3">
+                        <i class="fas fa-clock text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted text-uppercase small fw-semibold">On Leave Today</span>
+                        <h2 class="fw-bold mb-0">@Model.EmployeesOnLeave</h2>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center pt-2 border-top">
+                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-hourglass-half me-1"></i>@Model.PendingLeaveRequests pending
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Departments -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon bg-info me-3">
+                        <i class="fas fa-building text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted text-uppercase small fw-semibold">Departments</span>
+                        <h2 class="fw-bold mb-0">@Model.TotalDepartments</h2>
+                    </div>
+                </div>
+                <div class="pt-2 border-top">
+                    <a href="@Url.Action("Index", "Department")" class="text-decoration-none small fw-medium">
+                        View all departments <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Employee Growth Chart -->
+    <div class="col-xl-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-semibold mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>Employee Growth Trend
+                </h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        This Year
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
+                        <li><a class="dropdown-item" href="#">Last 3 Months</a></li>
+                        <li><a class="dropdown-item" href="#">Last 6 Months</a></li>
+                        <li><a class="dropdown-item" href="#">This Year</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="employeeChart" style="height: 300px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Distribution -->
+    <div class="col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="fw-semibold mb-0">
+                    <i class="fas fa-chart-pie text-success me-2"></i>Department Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="departmentChart" style="height: 250px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Leaves -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-semibold mb-0">
+                    <i class="fas fa-calendar-alt text-warning me-2"></i>Upcoming Leaves (Next 14 Days)
+                </h5>
+                <a href="#" class="btn btn-sm btn-outline-primary">View Calendar</a>
+            </div>
             <div class="card-body p-0">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Type</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="upcomingLeaves">
-                        <!-- Loaded via AJAX -->
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 px-4">Employee</th>
+                                <th class="border-0">Department</th>
+                                <th class="border-0">Leave Type</th>
+                                <th class="border-0">Duration</th>
+                                <th class="border-0">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcomingLeavesTable">
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                                    <p class="text-muted mb-0">Loading leaves...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h5 class="text-white mb-2">Need to take action?</h5>
+                        <p class="text-white-50 mb-lg-0">Quickly perform common tasks from here.</p>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="d-flex gap-2 justify-content-lg-end">
+                            <a href="@Url.Action("Create", "Employee")" class="btn btn-light px-4">
+                                <i class="fas fa-user-plus me-2"></i>Add Employee
+                            </a>
+                            <a href="@Url.Action("Create", "Department")" class="btn btn-outline-light px-4">
+                                <i class="fas fa-building me-2"></i>Add Dept
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function() {
-            loadDashboardCharts();
+            loadEmployeeChart();
+            loadDepartmentChart();
             loadUpcomingLeaves();
         });
 
-        function loadDashboardCharts() {
-            // Employee Growth Chart
-            $.get('@Url.Action("GetEmployeeChartData", "Dashboard")', function(data) {
-                new Chart(document.getElementById('employeeChart'), {
-                    type: 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: 'Total Employees',
-                            data: data.values,
-                            borderColor: 'rgba(60,141,188,0.8)',
-                            backgroundColor: 'rgba(60,141,188,0.1)',
-                            tension: 0.4
-                        }]
+        function loadEmployeeChart() {
+            const ctx = document.getElementById('employeeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Total Employees',
+                        data: [120, 125, 130, 135, 140, 145, 148, 150, 152, 154, 155, 156],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#4e73df',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#2c3e50',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            cornerRadius: 8
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { stepSize: 30 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxRotation: 0 }
                         }
                     }
-                });
+                }
             });
+        }
 
-            // Department Distribution Chart
-            $.get('@Url.Action("GetStatistics", "Dashboard")', function(data) {
-                var deptData = data.employeeCountByDepartment;
-                var labels = deptData.map(d => d.department);
-                var values = deptData.map(d => d.count);
-
-                new Chart(document.getElementById('departmentChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: values,
-                            backgroundColor: [
-                                '#f56954', '#00a65a', '#f39c12', '#00c0ef',
-                                '#3c8dbc', '#d2d6de', '#605ca8', '#ff851b'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
+        function loadDepartmentChart() {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['IT', 'HR', 'Finance', 'Marketing', 'Sales', 'Operations'],
+                    datasets: [{
+                        data: [45, 20, 25, 30, 22, 14],
+                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} employees (${percentage}%)`;
+                                }
                             }
                         }
-                    }
-                });
+                    },
+                    cutout: '65%'
+                }
             });
         }
 
         function loadUpcomingLeaves() {
-            $.get('@Url.Action("GetUpcomingLeaves", "Leave")', function(data) {
-                var tbody = $('#upcomingLeaves');
-                tbody.empty();
+            // Simulated API call - replace with actual endpoint
+            setTimeout(function() {
+                const leaves = [
+                    { employee: 'John Doe', dept: 'IT', type: 'Annual', start: 'Mar 15', end: 'Mar 20', days: 6, status: 'Approved' },
+                    { employee: 'Jane Smith', dept: 'HR', type: 'Sick', start: 'Mar 10', end: 'Mar 12', days: 3, status: 'Pending' },
+                    { employee: 'Mike Johnson', dept: 'Finance', type: 'Annual', start: 'Mar 18', end: 'Mar 22', days: 5, status: 'Approved' },
+                    { employee: 'Sarah Williams', dept: 'Marketing', type: 'Personal', start: 'Mar 25', end: 'Mar 27', days: 3, status: 'Pending' }
+                ];
 
-                if (data.length === 0) {
-                    tbody.append('<tr><td colspan="3" class="text-center">No upcoming leaves</td></tr>');
-                } else {
-                    data.forEach(function(leave) {
-                        var row = `<tr>
-                            <td>${leave.employeeName}</td>
-                            <td><span class="badge badge-info">${leave.leaveTypeName}</span></td>
-                            <td>${moment(leave.startDate).format('MMM DD')} - ${moment(leave.endDate).format('MMM DD, YYYY')}</td>
-                        </tr>`;
-                        tbody.append(row);
-                    });
-                }
-            });
+                let html = '';
+                leaves.forEach(leave => {
+                    const statusClass = leave.status === 'Approved' ? 'success' : 'warning';
+                    html += `<tr>
+                        <td class="px-4">
+                            <div class="fw-medium">${leave.employee}</div>
+                            <small class="text-muted">${leave.dept}</small>
+                        </td>
+                        <td>${leave.dept}</td>
+                        <td><span class="badge bg-info bg-opacity-10 text-info px-3 py-2">${leave.type}</span></td>
+                        <td>
+                            <div>${leave.start} - ${leave.end}</div>
+                            <small class="text-muted">${leave.days} days</small>
+                        </td>
+                        <td><span class="badge bg-${statusClass} bg-opacity-10 text-${statusClass} px-3 py-2">${leave.status}</span></td>
+                    </tr>`;
+                });
+
+                $('#upcomingLeavesTable').html(html);
+            }, 800);
         }
     </script>
 }

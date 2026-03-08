@@ -173,5 +173,15 @@ namespace HRMS.Services.Dashboard
                 })
                 .ToList();
         }
+
+        public Task<object> GetUpcomingLeavesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<object> GetDepartmentDistributionAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

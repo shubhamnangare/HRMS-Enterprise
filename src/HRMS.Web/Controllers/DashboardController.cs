@@ -6,7 +6,7 @@ using HRMS.Services.Dashboard.Dtos;
 namespace HRMS.Web.Controllers
 {
     [Authorize]
-    public class DashboardController : BaseController
+    public class DashboardController : Controller
     {
         private readonly IDashboardService _dashboardService;
         private readonly ILogger<DashboardController> _logger;
@@ -29,22 +29,8 @@ namespace HRMS.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading dashboard");
-                return HandleException(ex, "Failed to load dashboard data");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetStatistics()
-        {
-            try
-            {
-                var stats = await _dashboardService.GetStatisticsAsync();
-                return Json(stats);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading statistics");
-                return Json(new { success = false, message = "Failed to load statistics" });
+                TempData["Error"] = "Failed to load dashboard data";
+                return View(new DashboardDto());
             }
         }
 
@@ -53,28 +39,43 @@ namespace HRMS.Web.Controllers
         {
             try
             {
-                var chartData = await _dashboardService.GetEmployeeChartDataAsync();
-                return Json(chartData);
+                var data = await _dashboardService.GetEmployeeChartDataAsync();
+                return Json(data);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading chart data");
-                return Json(new { success = false, message = "Failed to load chart data" });
+                return Json(new { labels = new string[0], values = new int[0] });
             }
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRecentActivities()
+        public async Task<IActionResult> GetDepartmentDistribution()
         {
             try
             {
-                var activities = await _dashboardService.GetRecentActivitiesAsync();
-                return PartialView("_RecentActivities", activities);
+                var data = await _dashboardService.GetDepartmentDistributionAsync();
+                return Json(data);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading recent activities");
-                return Content("Failed to load activities");
+                _logger.LogError(ex, "Error loading department distribution");
+                return Json(new { labels = new string[0], values = new int[0] });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUpcomingLeaves()
+        {
+            try
+            {
+                var leaves = await _dashboardService.GetUpcomingLeavesAsync();
+                return Json(leaves);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading upcoming leaves");
+                return Json(new { error = "Failed to load leaves" });
             }
         }
     }
