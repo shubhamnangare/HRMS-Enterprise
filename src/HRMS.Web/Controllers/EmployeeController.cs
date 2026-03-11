@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers
 {
-    [Authorize(Roles = "Admin,HR")]
+   // [Authorize(Roles = "Admin,HR")]
     public class EmployeeController : BaseController
     {
         private readonly IEmployeeService _employeeService;

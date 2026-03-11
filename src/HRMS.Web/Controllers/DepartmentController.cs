@@ -6,7 +6,7 @@ using IDepartmentService = HRMS.Services.Departments.IDepartmentService;
 
 namespace HRMS.Web.Controllers
 {
-    [Authorize(Roles = "Admin,HR")]
+   // [Authorize(Roles = "Admin,HR")]
     public class DepartmentController : BaseController
     {
         private readonly IDepartmentService _departmentService;

@@ -19,7 +19,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top px-4">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="@Url.Action("Index", "Dashboard")">
-                <img src="~/images/logo.png" alt="HRMS" width="35" height="35" class="rounded-circle me-2">
+                <img src="~/images/profile.png" alt="HRMS" width="35" height="35" class="rounded-circle me-2">
                 <span class="fw-semibold">HRMS Enterprise</span>
             </a>
 
@@ -53,6 +53,10 @@
             </div>
         </div>
     </nav>
+    @{
+        var userName = User.Identity?.Name ?? "";
+        var truncatedName = userName.Length > 15 ? userName.Substring(0, 12) + "..." : userName;
+    }
 
     <!-- Sidebar -->
     <aside class="sidebar bg-white shadow-lg" style="position: fixed; top: 60px; left: 0; width: 260px; height: calc(100vh - 60px); overflow-y: auto; z-index: 1000;">
@@ -61,7 +65,7 @@
             <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3">
                 <img src="~/images/user-placeholder.png" alt="User" class="rounded-circle me-3" width="45" height="45">
                 <div>
-                    <h6 class="mb-0 fw-semibold">@User.Identity?.Name</h6>
+                    <h6 class="mb-0 fw-semibold" title="@userName">@truncatedName</h6>
                     <small class="text-muted">Administrator</small>
                 </div>
             </div>
