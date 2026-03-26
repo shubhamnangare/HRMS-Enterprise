@@ -1,5 +1,6 @@
 ﻿namespace HRMS.Core.Enums
 {
+    // Employee enums
     public enum Gender
     {
         Male = 1,
@@ -33,6 +34,7 @@
         Resigned = 5
     }
 
+    // Leave enums
     public enum LeaveType
     {
         Annual = 1,
@@ -42,7 +44,8 @@
         Unpaid = 5,
         Compensatory = 6,
         Bereavement = 7,
-        Marriage = 8
+        Marriage = 8,
+        Emergency = 9
     }
 
     public enum LeaveStatus
@@ -50,10 +53,10 @@
         Pending = 1,
         Approved = 2,
         Rejected = 3,
-        Cancelled = 4,
-        InProgress = 5
+        Cancelled = 4
     }
 
+    // Attendance enums
     public enum AttendanceStatus
     {
         Present = 1,
@@ -62,32 +65,30 @@
         HalfDay = 4,
         Holiday = 5,
         Weekend = 6,
-        OnLeave = 7
+        OnLeave = 7,
+        Remote = 8
     }
 
-    public enum NotificationType
+    // Audit enums
+    public enum AuditAction
     {
-        Info = 1,
-        Success = 2,
-        Warning = 3,
-        Error = 4
+        Create = 1,
+        Update = 2,
+        Delete = 3,
+        View = 4,
+        Login = 5,
+        Logout = 6,
+        Export = 7,
+        Import = 8
     }
 
-    public enum Permission
+    public enum EntityType
     {
-        ViewEmployees = 1,
-        CreateEmployee = 2,
-        EditEmployee = 3,
-        DeleteEmployee = 4,
-        ViewDepartments = 5,
-        CreateDepartment = 6,
-        EditDepartment = 7,
-        DeleteDepartment = 8,
-        ManageLeaves = 9,
-        ApproveLeaves = 10,
-        ViewReports = 11,
-        ManageUsers = 12,
-        ManageRoles = 13
+        Employee = 1,
+        Department = 2,
+        Leave = 3,
+        Attendance = 4,
+        User = 5,
+        Role = 6
     }
-
 }

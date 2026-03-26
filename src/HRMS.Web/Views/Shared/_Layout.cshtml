@@ -22,32 +22,6 @@
                 <img src="~/images/profile.png" alt="HRMS" width="35" height="35" class="rounded-circle me-2">
                 <span class="fw-semibold">HRMS Enterprise</span>
             </a>
-
-            <div class="d-flex align-items-center ms-auto">
-                <!-- Notifications -->
-                <div class="dropdown me-3">
-                    <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-bell fs-5 text-white"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 300px;">
-                        <div class="dropdown-header bg-light py-3">
-                            <h6 class="mb-0">Notifications</h6>
-                        </div>
-                        <div class="dropdown-item py-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="fas fa-user-plus text-primary"></i>
-                                </div>
-                                <div>
-                                    <p class="mb-0 fw-medium">New employee joined</p>
-                                    <small class="text-muted">5 min ago</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- User Menu -->
                 <partial name="_LoginPartial" />
             </div>
@@ -61,15 +35,6 @@
     <!-- Sidebar -->
     <aside class="sidebar bg-white shadow-lg" style="position: fixed; top: 60px; left: 0; width: 260px; height: calc(100vh - 60px); overflow-y: auto; z-index: 1000;">
         <div class="p-3">
-            <!-- User Info -->
-            <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3">
-                <img src="~/images/user-placeholder.png" alt="User" class="rounded-circle me-3" width="45" height="45">
-                <div>
-                    <h6 class="mb-0 fw-semibold" title="@userName">@truncatedName</h6>
-                    <small class="text-muted">Administrator</small>
-                </div>
-            </div>
-
             <!-- Search -->
             <div class="mb-4">
                 <div class="input-group">

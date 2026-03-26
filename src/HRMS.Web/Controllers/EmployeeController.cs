@@ -1,4 +1,6 @@
-﻿using HRMS.Services.Departments;
+﻿using HRMS.Core.Enums;
+using HRMS.Services.Departments;
+using HRMS.Services.Departments.Dtos;
 using HRMS.Services.Employees;
 using HRMS.Services.Employees.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -6,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers
 {
-   // [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin,HR")]
     public class EmployeeController : BaseController
     {
         private readonly IEmployeeService _employeeService;
@@ -31,7 +33,7 @@ namespace HRMS.Web.Controllers
                 var employees = await _employeeService.SearchEmployeesAsync(searchDto);
                 ViewBag.Departments = await _departmentService.GetAllDepartmentsAsync();
                 ViewBag.SearchDto = searchDto;
-
+                ViewBag.Statuses = Enum.GetValues<EmployeeStatus>();
                 return View(employees);
             }
             catch (Exception ex)
@@ -73,6 +75,21 @@ namespace HRMS.Web.Controllers
             {
                 _logger.LogError(ex, "Error loading create form");
                 return HandleException(ex, "Failed to load create form");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckEmployeeCode(string code, int? id)
+        {
+            try
+            {
+                var isUnique = await _employeeService.IsEmployeeCodeUniqueAsync(code, id);
+                return Json(isUnique);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking employee code uniqueness");
+                return Json(false);
             }
         }
 

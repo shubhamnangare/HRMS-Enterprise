@@ -4,8 +4,10 @@ using HRMS.Core.Entities;
 using HRMS.Core.Enums;
 using HRMS.Core.Interfaces.Repositories;
 using HRMS.Services.Employees.Dtos;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace HRMS.Services.Employees
 {
@@ -15,6 +17,7 @@ namespace HRMS.Services.Employees
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeeService> _logger;
         private readonly IMemoryCache _cache;
+        private readonly UserManager<IdentityUser> _userManager;
         private readonly IValidator<CreateEmployeeDto> _createValidator;
         private readonly IValidator<UpdateEmployeeDto> _updateValidator;
 
@@ -23,6 +26,7 @@ namespace HRMS.Services.Employees
             IMapper mapper,
             ILogger<EmployeeService> logger,
             IMemoryCache cache,
+            UserManager<IdentityUser> userManager,
             IValidator<CreateEmployeeDto> createValidator,
             IValidator<UpdateEmployeeDto> updateValidator)
         {
@@ -30,10 +34,37 @@ namespace HRMS.Services.Employees
             _mapper = mapper;
             _logger = logger;
             _cache = cache;
+            _userManager = userManager;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
         }
 
+        public async Task<Employee> GetCurrentEmployeeAsync(ClaimsPrincipal user)
+        {
+            try
+            {
+                // Get the IdentityUser from claims
+                var identityUser = await _userManager.GetUserAsync(user);
+                if (identityUser == null)
+                {
+                    throw new UnauthorizedAccessException("User not found");
+                }
+
+                // Find employee by email (since email is unique)
+                var employee = await _unitOfWork.Employees.GetByEmailAsync(identityUser.Email);
+                if (employee == null)
+                {
+                    throw new InvalidOperationException($"No employee record found for user {identityUser.Email}");
+                }
+
+                return employee;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current employee");
+                throw;
+            }
+        }
         public async Task<EmployeeDto?> GetEmployeeByIdAsync(int id)
         {
             try

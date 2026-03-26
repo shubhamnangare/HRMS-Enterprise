@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using HRMS.Core.DTOs.Leave;
 using HRMS.Core.Enums;
 using HRMS.Services.Leave.Dtos;
 

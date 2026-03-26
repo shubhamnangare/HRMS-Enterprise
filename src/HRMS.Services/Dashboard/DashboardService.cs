@@ -174,14 +174,32 @@ namespace HRMS.Services.Dashboard
                 .ToList();
         }
 
-        public Task<object> GetUpcomingLeavesAsync()
+        public async Task<IEnumerable<UpcomingLeaveDto>> GetUpcomingLeavesAsync()
         {
-            throw new NotImplementedException();
+            var upcomingLeaves = await _unitOfWork.Leaves.GetUpcomingLeavesAsync(7);
+            return upcomingLeaves.Select(l => new UpcomingLeaveDto
+            {
+                EmployeeName = $"{l.Employee.FirstName} {l.Employee.LastName}",
+                Department = l.Employee.Department?.Name ?? "N/A",
+                LeaveTypeName = l.LeaveType.ToString(),
+                StartDate = l.StartDate,
+                EndDate = l.EndDate,
+                //Days = (int)l.TotalDays,
+                Status = l.Status.ToString()
+            });
         }
 
-        public Task<object> GetDepartmentDistributionAsync()
+        public async Task<object> GetDepartmentDistributionAsync()
         {
-            throw new NotImplementedException();
+            var departments = await _unitOfWork.Departments
+           .GetDepartmentsWithEmployeeCountAsync();
+
+            return departments
+            .Where(d => d.Employees != null && d.Employees.Any())
+            .ToDictionary(
+                d => d.Name,
+                d => d.Employees?.Count ?? 0
+            );
         }
     }
 }

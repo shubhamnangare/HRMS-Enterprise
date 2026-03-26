@@ -11,202 +11,106 @@ namespace HRMS.Infrastructure.Repositories
         public LeaveRepository(ApplicationDbContext context) : base(context)
         {
         }
-
-        public async Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByEmployeeAsync(int employeeId)
+        public async Task<IEnumerable<LeaveRequest>> GetByEmployeeAsync(int employeeId)
         {
             return await _dbSet
-                .Where(l => l.EmployeeId == employeeId)
+                .Where(l => l.EmployeeId == employeeId && !l.IsDeleted)
                 .Include(l => l.Employee)
                 .Include(l => l.ApprovedBy)
-                .OrderByDescending(l => l.StartDate)
+                .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByStatusAsync(LeaveStatus status)
+        public async Task<IEnumerable<LeaveRequest>> GetPendingLeavesAsync()
         {
             return await _dbSet
-                .Where(l => l.Status == status)
+                .Where(l => l.Status == LeaveStatus.Pending && !l.IsDeleted)
                 .Include(l => l.Employee)
-                .Include(l => l.ApprovedBy)
-                .OrderByDescending(l => l.StartDate)
+                .ThenInclude(e => e.Department)
+                .OrderBy(l => l.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByDateRangeAsync(DateTime startDate, DateTime endDate)
+        public async Task<bool> HasOverlapAsync(int employeeId, DateTime startDate, DateTime endDate, int? excludeId = null)
         {
-            return await _dbSet
-                .Where(l => l.StartDate >= startDate && l.EndDate <= endDate)
-                .Include(l => l.Employee)
-                .Include(l => l.ApprovedBy)
-                .OrderBy(l => l.StartDate)
-                .ToListAsync();
-        }
-
-        public async Task<decimal> GetTotalLeaveDaysAsync(int employeeId, int year, LeaveType? leaveType = null)
-        {
-            var query = _dbSet
-                .Where(l => l.EmployeeId == employeeId
-                    && l.StartDate.Year == year
-                    && l.Status == LeaveStatus.Approved);
-
-            if (leaveType.HasValue)
-            {
-                query = query.Where(l => l.LeaveType == leaveType.Value);
-            }
-
-            return await query.SumAsync(l => l.TotalDays);
-        }
-
-        public async Task<bool> HasOverlappingLeaveAsync(int employeeId, DateTime startDate, DateTime endDate, int? excludeId = null)
-        {
-            var query = _dbSet
-                .Where(l => l.EmployeeId == employeeId
-                    && l.Status != LeaveStatus.Cancelled
-                    && l.Status != LeaveStatus.Rejected
-                    && ((l.StartDate <= endDate && l.EndDate >= startDate))); // Overlapping condition
+            var query = _dbSet.Where(l => l.EmployeeId == employeeId
+                && !l.IsDeleted
+                && l.Status != LeaveStatus.Rejected
+                && l.Status != LeaveStatus.Cancelled
+                && ((startDate >= l.StartDate && startDate <= l.EndDate) ||
+                    (endDate >= l.StartDate && endDate <= l.EndDate) ||
+                    (startDate <= l.StartDate && endDate >= l.EndDate)));
 
             if (excludeId.HasValue)
-            {
                 query = query.Where(l => l.Id != excludeId.Value);
-            }
 
             return await query.AnyAsync();
         }
 
-        public async Task<IEnumerable<LeaveRequest>> GetPendingApprovalsAsync(int managerId)
+        public async Task<int> GetUsedLeaveDaysAsync(int employeeId, LeaveType leaveType, int year)
         {
-            // Get employees under this manager
-            var employeeIds = await _context.Set<Employee>()
-                .Where(e => e.ManagerId == managerId)
-                .Select(e => e.Id)
-                .ToListAsync();
-
-            return await _dbSet
-                .Where(l => employeeIds.Contains(l.EmployeeId)
-                    && l.Status == LeaveStatus.Pending)
-                .Include(l => l.Employee)
-                .Include(l => l.ApprovedBy)
-                .OrderBy(l => l.StartDate)
-                .ToListAsync();
-        }
-
-        public async Task<Dictionary<LeaveType, decimal>> GetLeaveBalanceAsync(int employeeId, int year)
-        {
-            var approvedLeaves = await _dbSet
+            return (int)await _dbSet
                 .Where(l => l.EmployeeId == employeeId
+                    && l.LeaveType == leaveType
                     && l.StartDate.Year == year
-                    && l.Status == LeaveStatus.Approved)
-                .GroupBy(l => l.LeaveType)
-                .Select(g => new { LeaveType = g.Key, TotalDays = g.Sum(l => l.TotalDays) })
-                .ToDictionaryAsync(g => g.LeaveType, g => g.TotalDays);
-
-            return approvedLeaves;
+                    && l.Status == LeaveStatus.Approved
+                    && !l.IsDeleted)
+                .SumAsync(l => l.TotalDays);
         }
 
-        public async Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByDepartmentAsync(int departmentId, DateTime startDate, DateTime endDate)
+        public async Task<int> GetEmployeesOnLeaveAsync(DateTime date)
         {
-            var employeeIds = await _context.Set<Employee>()
-                .Where(e => e.DepartmentId == departmentId)
-                .Select(e => e.Id)
+            var employeeIds = await _dbSet
+                .Where(l => !l.IsDeleted
+                    && l.Status == LeaveStatus.Approved
+                    && l.StartDate <= date
+                    && l.EndDate >= date)
+                .Select(l => l.EmployeeId)
+                .Distinct()
                 .ToListAsync();
 
-            return await _dbSet
-                .Where(l => employeeIds.Contains(l.EmployeeId)
-                    && l.StartDate >= startDate
-                    && l.EndDate <= endDate)
-                .Include(l => l.Employee)
-                .Include(l => l.ApprovedBy)
-                .OrderBy(l => l.StartDate)
+            return employeeIds.Count;
+        }
+
+        public void Update(LeaveRequest leave)
+        {
+            _dbSet.Update(leave);
+        }
+
+        public async Task<IEnumerable<Employee>> GetEmployeesEntitiesOnLeaveAsync(DateTime date)
+        {
+            var employeeIds = await _dbSet
+                .Where(l => !l.IsDeleted
+                    && l.Status == LeaveStatus.Approved
+                    && l.StartDate <= date
+                    && l.EndDate >= date)
+                .Select(l => l.EmployeeId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!employeeIds.Any())
+                return new List<Employee>();
+
+            return await _context.Employees
+                .Where(e => employeeIds.Contains(e.Id) && !e.IsDeleted)
+                .Include(e => e.Department)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<LeaveRequest>> GetUpcomingLeavesAsync(int days)
+        public async Task<IEnumerable<LeaveRequest>> GetUpcomingLeavesAsync(int days = 7)
         {
             var startDate = DateTime.Today;
             var endDate = startDate.AddDays(days);
 
             return await _dbSet
-                .Where(l => l.StartDate >= startDate
-                    && l.StartDate <= endDate
-                    && l.Status == LeaveStatus.Approved)
+                .Where(l => !l.IsDeleted
+                    && l.Status == LeaveStatus.Approved
+                    && l.StartDate >= startDate
+                    && l.StartDate <= endDate)
                 .Include(l => l.Employee)
-                .Include(l => l.Employee.Department)
+                .ThenInclude(e => e.Department)
                 .OrderBy(l => l.StartDate)
                 .ToListAsync();
-        }
-
-        public async Task<int> GetEmployeesOnLeaveAsync(DateTime date)
-        {
-            return await _dbSet
-                .Where(l => l.StartDate <= date
-                    && l.EndDate >= date
-                    && l.Status == LeaveStatus.Approved)
-                .Select(l => l.EmployeeId)
-                .Distinct()
-                .CountAsync();
-        }
-
-        public async Task<Dictionary<LeaveStatus, int>> GetLeaveStatisticsAsync(DateTime startDate, DateTime endDate)
-        {
-            var statistics = await _dbSet
-                .Where(l => l.StartDate >= startDate && l.EndDate <= endDate)
-                .GroupBy(l => l.Status)
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(g => g.Status, g => g.Count);
-
-            return statistics;
-        }
-
-        public async Task<bool> CanApplyLeaveAsync(int employeeId, LeaveType leaveType, DateTime startDate, DateTime endDate)
-        {
-            var employee = await _context.Set<Employee>()
-                .FirstOrDefaultAsync(e => e.Id == employeeId);
-
-            if (employee == null)
-                return false;
-
-            // Check probation period
-            if (employee.ProbationEndDate.HasValue && employee.ProbationEndDate > DateTime.Today)
-            {
-                // Employees on probation might have restrictions
-                if (leaveType != LeaveType.Sick)
-                    return false;
-            }
-
-            // Check if already on leave
-            var hasOverlap = await HasOverlappingLeaveAsync(employeeId, startDate, endDate);
-            if (hasOverlap)
-                return false;
-
-            // Check minimum notice period (e.g., 2 days for casual leave)
-            if (leaveType != LeaveType.Sick && startDate < DateTime.Today.AddDays(2))
-                return false;
-
-            return true;
-        }
-
-        public async Task<int> GetAvailableLeaveDaysAsync(int employeeId, int year, LeaveType leaveType)
-        {
-            var maxAllowedDays = GetMaxLeaveDaysByType(leaveType);
-            var usedDays = await GetTotalLeaveDaysAsync(employeeId, year, leaveType);
-
-            return (int)(maxAllowedDays - usedDays);
-        }
-
-        private decimal GetMaxLeaveDaysByType(LeaveType leaveType)
-        {
-            return leaveType switch
-            {
-                LeaveType.Annual => 20,
-                LeaveType.Sick => 12,
-                LeaveType.Maternity => 180,
-                LeaveType.Paternity => 15,
-                LeaveType.Unpaid => 365,
-                LeaveType.Compensatory => 30,
-                LeaveType.Bereavement => 5,
-                LeaveType.Marriage => 5,
-                _ => 0
-            };
         }
     }
 }

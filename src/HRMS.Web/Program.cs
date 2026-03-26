@@ -1,14 +1,6 @@
-using FluentValidation;
-using FluentValidation.AspNetCore;
-using HRMS.Core.Interfaces.Repositories;
+using HRMS.Infrastructure;
 using HRMS.Infrastructure.Data;
-using HRMS.Infrastructure.Repositories;
-using HRMS.Services.Dashboard;
-using HRMS.Services.Departments;
-using HRMS.Services.Employees;
-using HRMS.Services.Leave;
-using HRMS.Services.Mappings;
-using HRMS.Services.Validators;
+using HRMS.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,29 +19,29 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
+});
+
 // Add Repositories
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
-builder.Services.AddScoped<ILeaveRepository, LeaveRepository>();
+builder.Services.AddInfrastructure();
 
 // Add Services
-builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-builder.Services.AddScoped<IDepartmentService, DepartmentService>();
-builder.Services.AddScoped<ILeaveService, LeaveService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-
-// Add AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
-
-// Add FluentValidation
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateEmployeeValidator>();
+builder.Services.AddApplicationServices();
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
@@ -58,6 +50,12 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbInitializer = scope.ServiceProvider.GetRequiredService<IServiceProvider>();
+    await DbInitializer.SeedRolesAndAdminAsync(dbInitializer);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

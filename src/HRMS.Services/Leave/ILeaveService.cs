@@ -1,38 +1,32 @@
-﻿using HRMS.Core.Enums;
+﻿using HRMS.Core.DTOs.Leave;
+using HRMS.Core.Entities;
+using HRMS.Core.Enums;
 using HRMS.Services.Leave.Dtos;
 
 namespace HRMS.Services.Leave
 {
     public interface ILeaveService
     {
-        // Get operations
         Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(int id);
-        Task<IEnumerable<LeaveRequestDto>> GetAllLeaveRequestsAsync();
         Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByEmployeeAsync(int employeeId);
-        Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByStatusAsync(LeaveStatus status);
-        Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByDateRangeAsync(DateTime startDate, DateTime endDate);
-
-        // Create/Update/Delete
+        Task<IEnumerable<LeaveRequestDto>> GetAllLeaveRequestsAsync();
         Task<LeaveRequestDto> CreateLeaveRequestAsync(CreateLeaveRequestDto createDto);
         Task<LeaveRequestDto> UpdateLeaveRequestAsync(UpdateLeaveRequestDto updateDto);
-        Task<LeaveRequestDto> ApproveLeaveRequestAsync(ApproveLeaveDto approveDto, int approverId);
-        Task<LeaveRequestDto> RejectLeaveRequestAsync(RejectLeaveDto rejectDto, int approverId);
-        Task<bool> CancelLeaveRequestAsync(int id, int employeeId);
-        Task<bool> DeleteLeaveRequestAsync(int id);
+        Task<bool> CancelLeaveRequestAsync(int id);
 
-        // Balance and validation
+        // Approve/Reject (for HR/Admin)
+        Task<LeaveRequestDto> ApproveLeaveRequestAsync(int id, int approverId, string? remarks = null);
+        Task<LeaveRequestDto> RejectLeaveRequestAsync(int id, int approverId, string remarks);
+
+        // Leave Balance
         Task<LeaveBalanceDto> GetLeaveBalanceAsync(int employeeId, int year);
-        Task<int> GetAvailableLeaveDaysAsync(int employeeId, int year, LeaveType leaveType);
+
+        // Validation
         Task<bool> CanApplyLeaveAsync(int employeeId, LeaveType leaveType, DateTime startDate, DateTime endDate);
-        Task<bool> HasOverlappingLeaveAsync(int employeeId, DateTime startDate, DateTime endDate, int? excludeId = null);
 
-        // Manager/Admin operations
-        Task<IEnumerable<LeaveRequestDto>> GetPendingApprovalsAsync(int managerId);
-        Task<IEnumerable<LeaveRequestDto>> GetTeamLeaveCalendarAsync(int managerId, DateTime month);
-        Task<Dictionary<LeaveStatus, int>> GetLeaveStatisticsAsync(DateTime startDate, DateTime endDate);
 
-        // Dashboard
-        Task<int> GetEmployeesOnLeaveAsync(DateTime date);
-        Task<IEnumerable<LeaveRequestDto>> GetUpcomingLeavesAsync(int days);
+        // Dashboard/HR
+        Task<IEnumerable<LeaveRequestDto>> GetPendingLeavesAsync();
+        Task<IEnumerable<Employee>> GetEmployeesOnLeaveAsync(DateTime date);
     }
 }

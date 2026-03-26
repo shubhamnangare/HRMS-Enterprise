@@ -1,10 +1,13 @@
-﻿using HRMS.Services.Employees.Dtos;
+﻿using HRMS.Core.Entities;
+using HRMS.Services.Employees.Dtos;
+using System.Security.Claims;
 
 namespace HRMS.Services.Employees
 {
     public interface IEmployeeService
     {
         Task<EmployeeDto?> GetEmployeeByIdAsync(int id);
+        Task<Employee> GetCurrentEmployeeAsync(ClaimsPrincipal user);
         Task<IEnumerable<EmployeeListDto>> GetAllEmployeesAsync();
         Task<IEnumerable<EmployeeListDto>> SearchEmployeesAsync(EmployeeSearchDto searchDto);
         Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto createDto);

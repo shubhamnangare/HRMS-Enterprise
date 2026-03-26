@@ -1,11 +1,10 @@
 ﻿using AutoMapper;
-using FluentValidation;
+using HRMS.Core.DTOs.Leave;
 using HRMS.Core.Entities;
 using HRMS.Core.Enums;
 using HRMS.Core.Interfaces.Repositories;
 using HRMS.Services.Leave.Dtos;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace HRMS.Services.Leave
 {
@@ -14,56 +13,46 @@ namespace HRMS.Services.Leave
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<LeaveService> _logger;
-        private readonly IMemoryCache _cache;
-        private readonly IValidator<CreateLeaveRequestDto> _createValidator;
-        private readonly IValidator<ApproveLeaveDto> _approveValidator;
-        private readonly IValidator<RejectLeaveDto> _rejectValidator;
 
         public LeaveService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            ILogger<LeaveService> logger,
-            IMemoryCache cache,
-            IValidator<CreateLeaveRequestDto> createValidator,
-            IValidator<ApproveLeaveDto> approveValidator,
-            IValidator<RejectLeaveDto> rejectValidator)
+            ILogger<LeaveService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
-            _cache = cache;
-            _createValidator = createValidator;
-            _approveValidator = approveValidator;
-            _rejectValidator = rejectValidator;
         }
 
+        // Get leave request by ID
         public async Task<LeaveRequestDto?> GetLeaveRequestByIdAsync(int id)
         {
             try
             {
-                _logger.LogInformation("Getting leave request with ID: {LeaveRequestId}", id);
-
-                var cacheKey = $"leave_{id}";
-                if (_cache.TryGetValue(cacheKey, out LeaveRequestDto? cachedLeave))
-                {
-                    return cachedLeave;
-                }
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(id);
-                if (leaveRequest == null)
-                {
-                    _logger.LogWarning("Leave request with ID {LeaveRequestId} not found", id);
+                var leave = await _unitOfWork.Leaves.GetByIdAsync(id);
+                if (leave == null || leave.IsDeleted)
                     return null;
-                }
 
-                var leaveDto = _mapper.Map<LeaveRequestDto>(leaveRequest);
-                _cache.Set(cacheKey, leaveDto, TimeSpan.FromMinutes(5));
-
-                return leaveDto;
+                return _mapper.Map<LeaveRequestDto>(leave);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting leave request with ID {LeaveRequestId}", id);
+                _logger.LogError(ex, "Error getting leave request with ID {LeaveId}", id);
+                throw;
+            }
+        }
+
+        // Get leaves by employee
+        public async Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByEmployeeAsync(int employeeId)
+        {
+            try
+            {
+                var leaves = await _unitOfWork.Leaves.GetByEmployeeAsync(employeeId);
+                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaves);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting leave requests for employee {EmployeeId}", employeeId);
                 throw;
             }
         }
@@ -72,20 +61,8 @@ namespace HRMS.Services.Leave
         {
             try
             {
-                _logger.LogInformation("Getting all leave requests");
-
-                var cacheKey = "all_leaves";
-                if (_cache.TryGetValue(cacheKey, out IEnumerable<LeaveRequestDto>? cachedLeaves))
-                {
-                    return cachedLeaves ?? Enumerable.Empty<LeaveRequestDto>();
-                }
-
-                var leaveRequests = await _unitOfWork.Leaves.GetAllAsync();
-                var leaveDtos = _mapper.Map<IEnumerable<LeaveRequestDto>>(leaveRequests);
-
-                _cache.Set(cacheKey, leaveDtos, TimeSpan.FromMinutes(5));
-
-                return leaveDtos;
+                var leaves = await _unitOfWork.Leaves.GetAllAsync();
+                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaves);
             }
             catch (Exception ex)
             {
@@ -94,393 +71,232 @@ namespace HRMS.Services.Leave
             }
         }
 
-        public async Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByEmployeeAsync(int employeeId)
-        {
-            try
-            {
-                _logger.LogInformation("Getting leave requests for employee ID: {EmployeeId}", employeeId);
-
-                var leaveRequests = await _unitOfWork.Leaves.GetLeaveRequestsByEmployeeAsync(employeeId);
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaveRequests);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting leave requests for employee ID: {EmployeeId}", employeeId);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByStatusAsync(LeaveStatus status)
-        {
-            try
-            {
-                _logger.LogInformation("Getting leave requests with status: {Status}", status);
-
-                var leaveRequests = await _unitOfWork.Leaves.GetLeaveRequestsByStatusAsync(status);
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaveRequests);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting leave requests with status: {Status}", status);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<LeaveRequestDto>> GetLeaveRequestsByDateRangeAsync(DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                _logger.LogInformation("Getting leave requests between {StartDate} and {EndDate}", startDate, endDate);
-
-                var leaveRequests = await _unitOfWork.Leaves.GetLeaveRequestsByDateRangeAsync(startDate, endDate);
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaveRequests);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting leave requests by date range");
-                throw;
-            }
-        }
-
+        // Create leave request
         public async Task<LeaveRequestDto> CreateLeaveRequestAsync(CreateLeaveRequestDto createDto)
         {
             try
             {
-                _logger.LogInformation("Creating leave request for employee ID: {EmployeeId}", createDto.EmployeeId);
-
-                // Validate
-                var validationResult = await _createValidator.ValidateAsync(createDto);
-                if (!validationResult.IsValid)
-                {
-                    throw new ValidationException(validationResult.Errors);
-                }
-
-                // Check if employee exists
-                var employee = await _unitOfWork.Employees.GetByIdAsync(createDto.EmployeeId);
-                if (employee == null)
-                {
-                    throw new KeyNotFoundException($"Employee with ID {createDto.EmployeeId} not found");
-                }
-
-                // Calculate total days
-                var totalDays = CalculateWorkingDays(createDto.StartDate, createDto.EndDate);
-
-                // Check if can apply
-                var canApply = await CanApplyLeaveAsync(createDto.EmployeeId, createDto.LeaveType,
-                    createDto.StartDate, createDto.EndDate);
+                // Validate leave request
+                var canApply = await CanApplyLeaveAsync(
+                    createDto.EmployeeId,
+                    createDto.LeaveType,
+                    createDto.StartDate,
+                    createDto.EndDate);
 
                 if (!canApply)
                 {
-                    throw new InvalidOperationException("Cannot apply for leave due to policy restrictions");
+                    throw new InvalidOperationException("Cannot apply for leave. Check balance or overlapping dates.");
                 }
 
-                // Check for overlapping leaves
-                var hasOverlap = await HasOverlappingLeaveAsync(createDto.EmployeeId,
-                    createDto.StartDate, createDto.EndDate);
+                // Calculate total days
+                var totalDays = CalculateTotalDays(createDto.StartDate, createDto.EndDate);
 
-                if (hasOverlap)
+                var leave = new LeaveRequest
                 {
-                    throw new InvalidOperationException("Employee already has a leave request for this period");
-                }
+                    EmployeeId = createDto.EmployeeId,
+                    LeaveType = createDto.LeaveType,
+                    StartDate = createDto.StartDate,
+                    EndDate = createDto.EndDate,
+                    TotalDays = totalDays,
+                    Reason = createDto.Reason,
+                    IsPaid = createDto.IsPaid,
+                    Status = LeaveStatus.Pending,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-                var leaveRequest = _mapper.Map<LeaveRequest>(createDto);
-                leaveRequest.TotalDays = totalDays;
-                leaveRequest.Status = LeaveStatus.Pending;
-                leaveRequest.CreatedAt = DateTime.UtcNow;
-
-                await _unitOfWork.Leaves.AddAsync(leaveRequest);
+                await _unitOfWork.Leaves.AddAsync(leave);
                 await _unitOfWork.CompleteAsync();
 
-                _logger.LogInformation("Leave request created successfully with ID: {LeaveRequestId}", leaveRequest.Id);
+                _logger.LogInformation("Leave request created for employee {EmployeeId}", createDto.EmployeeId);
 
-                // Clear cache
-                _cache.Remove($"employee_leaves_{createDto.EmployeeId}");
-                _cache.Remove("all_leaves");
-
-                return _mapper.Map<LeaveRequestDto>(leaveRequest);
+                return _mapper.Map<LeaveRequestDto>(leave);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating leave request");
+                _logger.LogError(ex, "Error creating leave request for employee {EmployeeId}", createDto.EmployeeId);
                 throw;
             }
         }
 
+        // Update leave request
         public async Task<LeaveRequestDto> UpdateLeaveRequestAsync(UpdateLeaveRequestDto updateDto)
         {
             try
             {
-                _logger.LogInformation("Updating leave request with ID: {LeaveRequestId}", updateDto.Id);
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(updateDto.Id);
-                if (leaveRequest == null)
-                {
+                var leave = await _unitOfWork.Leaves.GetByIdAsync(updateDto.Id);
+                if (leave == null || leave.IsDeleted)
                     throw new KeyNotFoundException($"Leave request with ID {updateDto.Id} not found");
-                }
 
-                // Only pending requests can be updated
-                if (leaveRequest.Status != LeaveStatus.Pending)
+                if (leave.Status != LeaveStatus.Pending)
+                    throw new InvalidOperationException($"Cannot update leave that is already {leave.Status}");
+
+                if (updateDto.StartDate.HasValue && updateDto.EndDate.HasValue)
                 {
-                    throw new InvalidOperationException("Only pending leave requests can be updated");
+                    // Check overlap
+                    var hasOverlap = await _unitOfWork.Leaves.HasOverlapAsync(
+                        leave.EmployeeId,
+                        updateDto.StartDate.Value,
+                        updateDto.EndDate.Value,
+                        updateDto.Id);
+
+                    if (hasOverlap)
+                        throw new InvalidOperationException("Leave dates overlap with existing request");
+
+                    leave.StartDate = updateDto.StartDate.Value;
+                    leave.EndDate = updateDto.EndDate.Value;
+                    leave.TotalDays = CalculateTotalDays(updateDto.StartDate.Value, updateDto.EndDate.Value);
                 }
 
-                // Calculate new total days
-                var totalDays = CalculateWorkingDays(updateDto.StartDate, updateDto.EndDate);
+                if (updateDto.LeaveType.HasValue)
+                    leave.LeaveType = updateDto.LeaveType.Value;
 
-                // Check for overlapping leaves (excluding current request)
-                var hasOverlap = await HasOverlappingLeaveAsync(leaveRequest.EmployeeId,
-                    updateDto.StartDate, updateDto.EndDate, updateDto.Id);
+                if (!string.IsNullOrEmpty(updateDto.Reason))
+                    leave.Reason = updateDto.Reason;
 
-                if (hasOverlap)
-                {
-                    throw new InvalidOperationException("Employee already has a leave request for this period");
-                }
+                if (updateDto.IsPaid.HasValue)
+                    leave.IsPaid = updateDto.IsPaid.Value;
 
-                _mapper.Map(updateDto, leaveRequest);
-                leaveRequest.TotalDays = totalDays;
-                leaveRequest.UpdatedAt = DateTime.UtcNow;
+                leave.UpdatedAt = DateTime.UtcNow;
 
-                _unitOfWork.Leaves.Update(leaveRequest);
+                _unitOfWork.Leaves.Update(leave);
                 await _unitOfWork.CompleteAsync();
 
-                _logger.LogInformation("Leave request {LeaveRequestId} updated successfully", leaveRequest.Id);
+                _logger.LogInformation("Leave request {LeaveId} updated", leave.Id);
 
-                // Clear cache
-                _cache.Remove($"leave_{leaveRequest.Id}");
-                _cache.Remove($"employee_leaves_{leaveRequest.EmployeeId}");
-                _cache.Remove("all_leaves");
-
-                return _mapper.Map<LeaveRequestDto>(leaveRequest);
+                return _mapper.Map<LeaveRequestDto>(leave);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating leave request with ID {LeaveRequestId}", updateDto.Id);
+                _logger.LogError(ex, "Error updating leave request {LeaveId}", updateDto.Id);
                 throw;
             }
         }
 
-        public async Task<LeaveRequestDto> ApproveLeaveRequestAsync(ApproveLeaveDto approveDto, int approverId)
+        // Cancel leave request
+        public async Task<bool> CancelLeaveRequestAsync(int id)
         {
             try
             {
-                _logger.LogInformation("Approving leave request with ID: {LeaveRequestId}", approveDto.Id);
-
-                // Validate
-                var validationResult = await _approveValidator.ValidateAsync(approveDto);
-                if (!validationResult.IsValid)
-                {
-                    throw new ValidationException(validationResult.Errors);
-                }
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(approveDto.Id);
-                if (leaveRequest == null)
-                {
-                    throw new KeyNotFoundException($"Leave request with ID {approveDto.Id} not found");
-                }
-
-                if (leaveRequest.Status != LeaveStatus.Pending)
-                {
-                    throw new InvalidOperationException("Only pending leave requests can be approved");
-                }
-
-                // Check if approver exists and is a manager
-                var approver = await _unitOfWork.Employees.GetByIdAsync(approverId);
-                if (approver == null)
-                {
-                    throw new KeyNotFoundException($"Approver with ID {approverId} not found");
-                }
-
-                leaveRequest.Status = LeaveStatus.Approved;
-                leaveRequest.ApprovedById = approverId;
-                leaveRequest.ApprovedDate = DateTime.UtcNow;
-                leaveRequest.Remarks = approveDto.Remarks;
-                leaveRequest.UpdatedAt = DateTime.UtcNow;
-
-                _unitOfWork.Leaves.Update(leaveRequest);
-                await _unitOfWork.CompleteAsync();
-
-                _logger.LogInformation("Leave request {LeaveRequestId} approved successfully", leaveRequest.Id);
-
-                // Clear cache
-                _cache.Remove($"leave_{leaveRequest.Id}");
-                _cache.Remove($"employee_leaves_{leaveRequest.EmployeeId}");
-                _cache.Remove("all_leaves");
-
-                return _mapper.Map<LeaveRequestDto>(leaveRequest);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error approving leave request with ID {LeaveRequestId}", approveDto.Id);
-                throw;
-            }
-        }
-
-        public async Task<LeaveRequestDto> RejectLeaveRequestAsync(RejectLeaveDto rejectDto, int approverId)
-        {
-            try
-            {
-                _logger.LogInformation("Rejecting leave request with ID: {LeaveRequestId}", rejectDto.Id);
-
-                // Validate
-                var validationResult = await _rejectValidator.ValidateAsync(rejectDto);
-                if (!validationResult.IsValid)
-                {
-                    throw new ValidationException(validationResult.Errors);
-                }
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(rejectDto.Id);
-                if (leaveRequest == null)
-                {
-                    throw new KeyNotFoundException($"Leave request with ID {rejectDto.Id} not found");
-                }
-
-                if (leaveRequest.Status != LeaveStatus.Pending)
-                {
-                    throw new InvalidOperationException("Only pending leave requests can be rejected");
-                }
-
-                leaveRequest.Status = LeaveStatus.Rejected;
-                leaveRequest.ApprovedById = approverId;
-                leaveRequest.ApprovedDate = DateTime.UtcNow;
-                leaveRequest.Remarks = rejectDto.Remarks;
-                leaveRequest.UpdatedAt = DateTime.UtcNow;
-
-                _unitOfWork.Leaves.Update(leaveRequest);
-                await _unitOfWork.CompleteAsync();
-
-                _logger.LogInformation("Leave request {LeaveRequestId} rejected successfully", leaveRequest.Id);
-
-                // Clear cache
-                _cache.Remove($"leave_{leaveRequest.Id}");
-                _cache.Remove($"employee_leaves_{leaveRequest.EmployeeId}");
-                _cache.Remove("all_leaves");
-
-                return _mapper.Map<LeaveRequestDto>(leaveRequest);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error rejecting leave request with ID {LeaveRequestId}", rejectDto.Id);
-                throw;
-            }
-        }
-
-        public async Task<bool> CancelLeaveRequestAsync(int id, int employeeId)
-        {
-            try
-            {
-                _logger.LogInformation("Cancelling leave request with ID: {LeaveRequestId}", id);
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(id);
-                if (leaveRequest == null)
-                {
+                var leave = await _unitOfWork.Leaves.GetByIdAsync(id);
+                if (leave == null || leave.IsDeleted)
                     throw new KeyNotFoundException($"Leave request with ID {id} not found");
-                }
 
-                // Only the employee who created it can cancel
-                if (leaveRequest.EmployeeId != employeeId)
-                {
-                    throw new UnauthorizedAccessException("You can only cancel your own leave requests");
-                }
+                if (leave.Status != LeaveStatus.Pending && leave.Status != LeaveStatus.Approved)
+                    throw new InvalidOperationException($"Cannot cancel leave with status {leave.Status}");
 
-                // Only pending or approved requests can be cancelled
-                if (leaveRequest.Status != LeaveStatus.Pending && leaveRequest.Status != LeaveStatus.Approved)
-                {
-                    throw new InvalidOperationException("This leave request cannot be cancelled");
-                }
+                if (leave.Status == LeaveStatus.Approved && leave.StartDate <= DateTime.Today)
+                    throw new InvalidOperationException("Cannot cancel approved leave that has already started");
 
-                leaveRequest.Status = LeaveStatus.Cancelled;
-                leaveRequest.UpdatedAt = DateTime.UtcNow;
+                leave.Status = LeaveStatus.Cancelled;
+                leave.UpdatedAt = DateTime.UtcNow;
 
-                _unitOfWork.Leaves.Update(leaveRequest);
+                _unitOfWork.Leaves.Update(leave);
                 await _unitOfWork.CompleteAsync();
 
-                _logger.LogInformation("Leave request {LeaveRequestId} cancelled successfully", id);
-
-                // Clear cache
-                _cache.Remove($"leave_{id}");
-                _cache.Remove($"employee_leaves_{employeeId}");
-                _cache.Remove("all_leaves");
+                _logger.LogInformation("Leave request {LeaveId} cancelled", id);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error cancelling leave request with ID {LeaveRequestId}", id);
+                _logger.LogError(ex, "Error cancelling leave request {LeaveId}", id);
                 throw;
             }
         }
 
-        public async Task<bool> DeleteLeaveRequestAsync(int id)
+        // Approve leave request
+        public async Task<LeaveRequestDto> ApproveLeaveRequestAsync(int id, int approverId, string? remarks = null)
         {
             try
             {
-                _logger.LogInformation("Deleting leave request with ID: {LeaveRequestId}", id);
-
-                var leaveRequest = await _unitOfWork.Leaves.GetByIdAsync(id);
-                if (leaveRequest == null)
-                {
+                var leave = await _unitOfWork.Leaves.GetByIdAsync(id);
+                if (leave == null || leave.IsDeleted)
                     throw new KeyNotFoundException($"Leave request with ID {id} not found");
-                }
 
-                // Soft delete
-                leaveRequest.IsDeleted = true;
-                leaveRequest.UpdatedAt = DateTime.UtcNow;
+                if (leave.Status != LeaveStatus.Pending)
+                    throw new InvalidOperationException($"Cannot approve leave that is already {leave.Status}");
 
-                _unitOfWork.Leaves.Update(leaveRequest);
+                leave.Status = LeaveStatus.Approved;
+                leave.ApprovedById = approverId;
+                leave.ApprovedDate = DateTime.UtcNow;
+                leave.Remarks = remarks;
+                leave.UpdatedAt = DateTime.UtcNow;
+
+                _unitOfWork.Leaves.Update(leave);
                 await _unitOfWork.CompleteAsync();
 
-                _logger.LogInformation("Leave request {LeaveRequestId} deleted successfully", id);
+                _logger.LogInformation("Leave request {LeaveId} approved by {ApproverId}", id, approverId);
 
-                // Clear cache
-                _cache.Remove($"leave_{id}");
-                _cache.Remove($"employee_leaves_{leaveRequest.EmployeeId}");
-                _cache.Remove("all_leaves");
-
-                return true;
+                return _mapper.Map<LeaveRequestDto>(leave);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting leave request with ID {LeaveRequestId}", id);
+                _logger.LogError(ex, "Error approving leave request {LeaveId}", id);
                 throw;
             }
         }
 
+        // Reject leave request
+        public async Task<LeaveRequestDto> RejectLeaveRequestAsync(int id, int approverId, string remarks)
+        {
+            try
+            {
+                var leave = await _unitOfWork.Leaves.GetByIdAsync(id);
+                if (leave == null || leave.IsDeleted)
+                    throw new KeyNotFoundException($"Leave request with ID {id} not found");
+
+                if (leave.Status != LeaveStatus.Pending)
+                    throw new InvalidOperationException($"Cannot reject leave that is already {leave.Status}");
+
+                leave.Status = LeaveStatus.Rejected;
+                leave.ApprovedById = approverId;
+                leave.ApprovedDate = DateTime.UtcNow;
+                leave.Remarks = remarks;
+                leave.UpdatedAt = DateTime.UtcNow;
+
+                _unitOfWork.Leaves.Update(leave);
+                await _unitOfWork.CompleteAsync();
+
+                _logger.LogInformation("Leave request {LeaveId} rejected by {ApproverId}", id, approverId);
+
+                return _mapper.Map<LeaveRequestDto>(leave);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting leave request {LeaveId}", id);
+                throw;
+            }
+        }
+
+        // Get leave balance
         public async Task<LeaveBalanceDto> GetLeaveBalanceAsync(int employeeId, int year)
         {
             try
             {
-                _logger.LogInformation("Getting leave balance for employee ID: {EmployeeId}, year: {Year}", employeeId, year);
-
                 var employee = await _unitOfWork.Employees.GetByIdAsync(employeeId);
                 if (employee == null)
-                {
                     throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
-                }
 
                 var balance = new LeaveBalanceDto
                 {
                     EmployeeId = employeeId,
-                    EmployeeName = employee.FullName,
-                    Year = year,
-                    Balances = new Dictionary<LeaveType, LeaveBalanceDetail>()
+                    EmployeeName = $"{employee.FirstName} {employee.LastName}",
+                    Balances = new Dictionary<LeaveType, LeaveTypeBalance>()
                 };
 
                 foreach (LeaveType leaveType in Enum.GetValues(typeof(LeaveType)))
                 {
-                    var entitled = GetEntitledLeaveDays(leaveType, employee);
-                    var used = await _unitOfWork.Leaves.GetTotalLeaveDaysAsync(employeeId, year, leaveType);
-                    var pending = await _unitOfWork.Leaves
-                        .FindAsync(l => l.EmployeeId == employeeId
-                            && l.StartDate.Year == year
-                            && l.LeaveType == leaveType
-                            && l.Status == LeaveStatus.Pending)
-                        .ContinueWith(t => t.Result.Sum(l => l.TotalDays));
+                    var entitlement = GetLeaveEntitlement(leaveType, employee.HireDate, year);
+                    var used = await _unitOfWork.Leaves.GetUsedLeaveDaysAsync(employeeId, leaveType, year);
 
-                    balance.Balances[leaveType] = new LeaveBalanceDetail
+                    balance.Balances[leaveType] = new LeaveTypeBalance
                     {
-                        Entitled = entitled,
+                        LeaveType = leaveType,
+                        LeaveTypeName = leaveType.ToString(),
+                        TotalEntitled = entitlement,
                         Used = used,
-                        Pending = pending
+                        Remaining = entitlement - used,
+                        IsPaid = IsLeavePaid(leaveType)
                     };
                 }
 
@@ -488,229 +304,117 @@ namespace HRMS.Services.Leave
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting leave balance for employee ID: {EmployeeId}", employeeId);
+                _logger.LogError(ex, "Error getting leave balance for employee {EmployeeId}", employeeId);
                 throw;
             }
         }
 
-        public async Task<int> GetAvailableLeaveDaysAsync(int employeeId, int year, LeaveType leaveType)
-        {
-            try
-            {
-                var employee = await _unitOfWork.Employees.GetByIdAsync(employeeId);
-                if (employee == null)
-                {
-                    throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
-                }
-
-                var entitled = GetEntitledLeaveDays(leaveType, employee);
-                var used = await _unitOfWork.Leaves.GetTotalLeaveDaysAsync(employeeId, year, leaveType);
-                var pending = await _unitOfWork.Leaves
-                    .FindAsync(l => l.EmployeeId == employeeId
-                        && l.StartDate.Year == year
-                        && l.LeaveType == leaveType
-                        && l.Status == LeaveStatus.Pending)
-                    .ContinueWith(t => t.Result.Sum(l => l.TotalDays));
-
-                return (int)(entitled - used - pending);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting available leave days for employee ID: {EmployeeId}", employeeId);
-                throw;
-            }
-        }
-
+        // Check if employee can apply for leave
         public async Task<bool> CanApplyLeaveAsync(int employeeId, LeaveType leaveType, DateTime startDate, DateTime endDate)
         {
             try
             {
-                var employee = await _unitOfWork.Employees.GetByIdAsync(employeeId);
-                if (employee == null)
-                {
+                // Check past dates
+                if (startDate < DateTime.Today)
                     return false;
-                }
 
-                // Check probation period
-                if (employee.ProbationEndDate.HasValue && employee.ProbationEndDate > DateTime.Today)
-                {
-                    if (leaveType != LeaveType.Sick)
-                    {
-                        return false;
-                    }
-                }
-
-                // Check minimum notice period (2 days for non-sick leave)
-                if (leaveType != LeaveType.Sick && startDate < DateTime.Today.AddDays(2))
-                {
+                // Check start date before end date
+                if (startDate > endDate)
                     return false;
-                }
 
-                // Check maximum leave duration
-                var totalDays = CalculateWorkingDays(startDate, endDate);
-                if (totalDays > GetMaxLeaveDuration(leaveType))
-                {
+                // Check overlapping leaves
+                var hasOverlap = await _unitOfWork.Leaves.HasOverlapAsync(employeeId, startDate, endDate);
+                if (hasOverlap)
                     return false;
-                }
 
-                // Check available balance
-                var availableDays = await GetAvailableLeaveDaysAsync(employeeId, startDate.Year, leaveType);
-                if (totalDays > availableDays)
+                // Check leave balance
+                var balance = await GetLeaveBalanceAsync(employeeId, DateTime.Now.Year);
+                var totalDays = CalculateTotalDays(startDate, endDate);
+
+                if (balance.Balances.TryGetValue(leaveType, out var leaveBalance))
                 {
-                    return false;
+                    return totalDays <= leaveBalance.Remaining;
                 }
 
-                return true;
+                return false;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking if employee {EmployeeId} can apply for leave", employeeId);
-                return false;
-            }
-        }
-
-        public async Task<bool> HasOverlappingLeaveAsync(int employeeId, DateTime startDate, DateTime endDate, int? excludeId = null)
-        {
-            try
-            {
-                return await _unitOfWork.Leaves.HasOverlappingLeaveAsync(employeeId, startDate, endDate, excludeId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking overlapping leave for employee {EmployeeId}", employeeId);
-                return true; // Fail safe - better to block than allow overlap
-            }
-        }
-
-        public async Task<IEnumerable<LeaveRequestDto>> GetPendingApprovalsAsync(int managerId)
-        {
-            try
-            {
-                _logger.LogInformation("Getting pending approvals for manager ID: {ManagerId}", managerId);
-
-                var pendingLeaves = await _unitOfWork.Leaves.GetPendingApprovalsAsync(managerId);
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(pendingLeaves);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting pending approvals for manager ID: {ManagerId}", managerId);
                 throw;
             }
         }
 
-        public async Task<IEnumerable<LeaveRequestDto>> GetTeamLeaveCalendarAsync(int managerId, DateTime month)
+        // Get pending leaves (for HR/Admin)
+        public async Task<IEnumerable<LeaveRequestDto>> GetPendingLeavesAsync()
         {
             try
             {
-                _logger.LogInformation("Getting team leave calendar for manager ID: {ManagerId}, month: {Month}",
-                    managerId, month.ToString("yyyy-MM"));
-
-                var startOfMonth = new DateTime(month.Year, month.Month, 1);
-                var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-
-                var leaveRequests = await _unitOfWork.Leaves
-                    .GetLeaveRequestsByDateRangeAsync(startOfMonth, endOfMonth);
-
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaveRequests);
+                var leaves = await _unitOfWork.Leaves.GetPendingLeavesAsync();
+                return _mapper.Map<IEnumerable<LeaveRequestDto>>(leaves);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting team leave calendar for manager ID: {ManagerId}", managerId);
+                _logger.LogError(ex, "Error getting pending leaves");
                 throw;
             }
         }
 
-        public async Task<Dictionary<LeaveStatus, int>> GetLeaveStatisticsAsync(DateTime startDate, DateTime endDate)
+        // Get employees on leave on specific date
+        public async Task<IEnumerable<Employee>> GetEmployeesOnLeaveAsync(DateTime date)
         {
             try
             {
-                return await _unitOfWork.Leaves.GetLeaveStatisticsAsync(startDate, endDate);
+                return await _unitOfWork.Leaves.GetEmployeesEntitiesOnLeaveAsync(date);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting leave statistics");
+                _logger.LogError(ex, "Error getting employees on leave for date {Date}", date);
                 throw;
             }
         }
 
-        public async Task<int> GetEmployeesOnLeaveAsync(DateTime date)
+        // Helper methods
+        private decimal CalculateTotalDays(DateTime startDate, DateTime endDate)
         {
-            try
+            decimal days = 0;
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
-                return await _unitOfWork.Leaves.GetEmployeesOnLeaveAsync(date);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting employees on leave for date: {Date}", date);
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<LeaveRequestDto>> GetUpcomingLeavesAsync(int days)
-        {
-            try
-            {
-                var upcomingLeaves = await _unitOfWork.Leaves.GetUpcomingLeavesAsync(days);
-                return _mapper.Map<IEnumerable<LeaveRequestDto>>(upcomingLeaves);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting upcoming leaves");
-                throw;
-            }
-        }
-
-        #region Private Helper Methods
-
-        private int CalculateWorkingDays(DateTime startDate, DateTime endDate)
-        {
-            int days = 0;
-            var current = startDate;
-
-            while (current <= endDate)
-            {
-                if (current.DayOfWeek != DayOfWeek.Saturday && current.DayOfWeek != DayOfWeek.Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
                 {
                     days++;
                 }
-                current = current.AddDays(1);
             }
-
             return days;
         }
 
-        private decimal GetEntitledLeaveDays(LeaveType leaveType, Employee employee)
+        private decimal GetLeaveEntitlement(LeaveType leaveType, DateTime hireDate, int year)
         {
+            var yearsOfService = year - hireDate.Year;
+
             return leaveType switch
             {
-                LeaveType.Annual => 20, // 20 days per year
-                LeaveType.Sick => 12,    // 12 days per year
-                LeaveType.Maternity => 180, // 6 months
-                LeaveType.Paternity => 15,   // 15 days
-                LeaveType.Unpaid => 365,      // As needed
-                LeaveType.Compensatory => 30, // 30 days
-                LeaveType.Bereavement => 5,   // 5 days
-                LeaveType.Marriage => 5,      // 5 days
+                LeaveType.Annual => yearsOfService < 1 ? 12 :
+                                    yearsOfService < 3 ? 15 :
+                                    yearsOfService < 5 ? 18 : 21,
+                LeaveType.Sick => 12,
+                LeaveType.Maternity => 90,
+                LeaveType.Paternity => 10,
+                LeaveType.Unpaid => 30,
+                LeaveType.Compensatory => 30,
+                LeaveType.Bereavement => 5,
+                LeaveType.Marriage => 5,
                 _ => 0
             };
         }
 
-        private int GetMaxLeaveDuration(LeaveType leaveType)
+        private bool IsLeavePaid(LeaveType leaveType)
         {
             return leaveType switch
             {
-                LeaveType.Annual => 20,
-                LeaveType.Sick => 10,
-                LeaveType.Maternity => 180,
-                LeaveType.Paternity => 15,
-                LeaveType.Unpaid => 90,
-                LeaveType.Compensatory => 5,
-                LeaveType.Bereavement => 5,
-                LeaveType.Marriage => 5,
-                _ => 30
+                LeaveType.Unpaid => false,
+                _ => true
             };
         }
-
-        #endregion
     }
 }

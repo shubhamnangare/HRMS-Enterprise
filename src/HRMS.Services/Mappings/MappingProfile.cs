@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using HRMS.Core.DTOs.Leave;
 using HRMS.Core.Entities;
 using HRMS.Core.Enums;
 using HRMS.Services.Departments.Dtos;

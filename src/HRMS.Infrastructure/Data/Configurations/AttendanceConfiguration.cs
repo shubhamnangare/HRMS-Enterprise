@@ -21,7 +21,7 @@ namespace HRMS.Infrastructure.Data.Configurations
                 .HasDefaultValue(0);
 
             builder.Property(a => a.TotalHours)
-                .HasPrecision(18, 2);
+                 .HasColumnType("decimal(5,2)");
 
             builder.Property(a => a.Notes)
                 .HasMaxLength(500);

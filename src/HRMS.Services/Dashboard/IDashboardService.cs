@@ -8,7 +8,7 @@ namespace HRMS.Services.Dashboard
         Task<object> GetStatisticsAsync();
         Task<ChartDataDto> GetEmployeeChartDataAsync();
         Task<List<RecentActivityDto>> GetRecentActivitiesAsync();
-        Task<object> GetUpcomingLeavesAsync();
+        Task<IEnumerable<UpcomingLeaveDto>> GetUpcomingLeavesAsync();
         Task<object> GetDepartmentDistributionAsync();
     }
 }

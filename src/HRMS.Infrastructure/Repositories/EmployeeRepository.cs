@@ -11,40 +11,81 @@ namespace HRMS.Infrastructure.Repositories
         {
         }
 
+        public async Task<Employee?> GetByEmailAsync(string email)
+        {
+            return await _dbSet
+                .FirstOrDefaultAsync(e => e.Email == email && !e.IsDeleted);
+        }
+
+        public async Task<Employee?> GetByEmployeeCodeAsync(string code)
+        {
+            return await _dbSet
+                .FirstOrDefaultAsync(e => e.EmployeeCode == code && !e.IsDeleted);
+        }
+
         public async Task<Employee?> GetEmployeeWithDetailsAsync(int id)
         {
             return await _dbSet
                 .Include(e => e.Department)
                 .Include(e => e.Manager)
-                .Include(e => e.Subordinates)
-                .FirstOrDefaultAsync(e => e.Id == id);
+                .Include(e => e.Subordinates.Where(s => !s.IsDeleted))
+                .Include(e => e.LeaveRequests.Where(l => !l.IsDeleted))
+                .Include(e => e.Attendances.Where(a => !a.IsDeleted))
+                .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+        }
+
+        public async Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId)
+        {
+            return await _dbSet
+                .Where(e => e.DepartmentId == departmentId && !e.IsDeleted)
+                .Include(e => e.Department)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Employee>> SearchEmployeesAsync(string? searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return await _dbSet
+                    .Where(e => !e.IsDeleted)
+                    .Include(e => e.Department)
+                    .OrderBy(e => e.FirstName)
+                    .ThenBy(e => e.LastName)
+                    .ToListAsync();
+            }
+
+            searchTerm = searchTerm.ToLower();
+
+            return await _dbSet
+                .Where(e => !e.IsDeleted && (
+                    e.FirstName.ToLower().Contains(searchTerm) ||
+                    e.LastName.ToLower().Contains(searchTerm) ||
+                    e.Email.ToLower().Contains(searchTerm) ||
+                    e.EmployeeCode.ToLower().Contains(searchTerm) ||
+                    (e.MiddleName != null && e.MiddleName.ToLower().Contains(searchTerm))))
+                .Include(e => e.Department)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Employee>> GetEmployeesByDepartmentAsync(int departmentId)
         {
             return await _dbSet
-                .Where(e => e.DepartmentId == departmentId)
+                .Where(e => e.DepartmentId == departmentId && !e.IsDeleted)
                 .Include(e => e.Department)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Employee>> GetEmployeesByManagerAsync(int managerId)
         {
             return await _dbSet
-                .Where(e => e.ManagerId == managerId)
-                .Include(e => e.Department)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Employee>> SearchEmployeesAsync(string searchTerm)
-        {
-            searchTerm = searchTerm.ToLower();
-            return await _dbSet
-                .Where(e => e.FirstName.ToLower().Contains(searchTerm) ||
-                           e.LastName.ToLower().Contains(searchTerm) ||
-                           e.Email.ToLower().Contains(searchTerm) ||
-                           e.EmployeeCode.ToLower().Contains(searchTerm))
-                .Include(e => e.Department)
+                .Where(e => e.ManagerId == managerId && !e.IsDeleted)
+                .Include(e => e.Manager)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
                 .ToListAsync();
         }
 
@@ -52,43 +93,24 @@ namespace HRMS.Infrastructure.Repositories
         {
             if (excludeId.HasValue)
             {
-                return !await _dbSet.AnyAsync(e => e.Email == email && e.Id != excludeId.Value);
+                return !await _dbSet.AnyAsync(e => e.Email == email && e.Id != excludeId.Value && !e.IsDeleted);
             }
-            return !await _dbSet.AnyAsync(e => e.Email == email);
+            return !await _dbSet.AnyAsync(e => e.Email == email && !e.IsDeleted);
         }
 
         public async Task<bool> IsEmployeeCodeUniqueAsync(string code, int? excludeId = null)
         {
             if (excludeId.HasValue)
             {
-                return !await _dbSet.AnyAsync(e => e.EmployeeCode == code && e.Id != excludeId.Value);
+                return !await _dbSet.AnyAsync(e => e.EmployeeCode == code && e.Id != excludeId.Value && !e.IsDeleted);
             }
-            return !await _dbSet.AnyAsync(e => e.EmployeeCode == code);
+            return !await _dbSet.AnyAsync(e => e.EmployeeCode == code && !e.IsDeleted);
         }
 
-        public async Task<int> GetEmployeeCountByDepartmentAsync(int departmentId)
-        {
-            return await _dbSet.CountAsync(e => e.DepartmentId == departmentId);
-        }
 
-        public async Task<IEnumerable<Employee>> GetEmployeesHiredBetweenAsync(DateTime startDate, DateTime endDate)
+        public void Update(Employee employee)
         {
-            return await _dbSet
-                .Where(e => e.HireDate >= startDate && e.HireDate <= endDate)
-                .Include(e => e.Department)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Employee>> GetEmployeesWithUpcomingBirthdaysAsync(int days)
-        {
-            var today = DateTime.Today;
-            var targetDate = today.AddDays(days);
-
-            return await _dbSet
-                .Where(e => e.DateOfBirth.Month >= today.Month &&
-                           e.DateOfBirth.DayOfYear <= targetDate.DayOfYear)
-                .OrderBy(e => e.DateOfBirth)
-                .ToListAsync();
+            _dbSet.Update(employee);
         }
     }
 }

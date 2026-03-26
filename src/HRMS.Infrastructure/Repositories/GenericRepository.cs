@@ -1,12 +1,12 @@
-﻿using HRMS.Core.Interfaces.Repositories;
-using HRMS.Core.Specifications;
+﻿using HRMS.Core.Entities.Base;
+using HRMS.Core.Interfaces;
 using HRMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace HRMS.Infrastructure.Repositories
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    public class GenericRepository<T> : IRepository<T> where T : BaseEntity
     {
         protected readonly ApplicationDbContext _context;
         protected readonly DbSet<T> _dbSet;
@@ -32,89 +32,45 @@ namespace HRMS.Infrastructure.Repositories
             return await _dbSet.Where(predicate).ToListAsync();
         }
 
-        public virtual async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
-        {
-            return await _dbSet.SingleOrDefaultAsync(predicate);
-        }
-
-        public virtual async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
-        {
-            return await _dbSet.FirstOrDefaultAsync(predicate);
-        }
-
-        public virtual async Task AddAsync(T entity)
+        public virtual async Task<T> AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);
+            return entity;
         }
 
-        public virtual async Task AddRangeAsync(IEnumerable<T> entities)
-        {
-            await _dbSet.AddRangeAsync(entities);
-        }
-
-        public virtual void Update(T entity)
+        public virtual async Task UpdateAsync(T entity)
         {
             _dbSet.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public virtual void UpdateRange(IEnumerable<T> entities)
-        {
-            _dbSet.UpdateRange(entities);
-        }
-
-        public virtual void Remove(T entity)
+        public virtual async Task DeleteAsync(T entity)
         {
             _dbSet.Remove(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public virtual void RemoveRange(IEnumerable<T> entities)
+        public virtual async Task DeleteAsync(int id)
         {
-            _dbSet.RemoveRange(entities);
+            var entity = await GetByIdAsync(id);
+            if (entity != null)
+            {
+                _dbSet.Remove(entity);
+                await _context.SaveChangesAsync();
+            }
         }
 
-        public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+        public virtual async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbSet.AnyAsync(predicate);
         }
 
-        public virtual async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
+        public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null)
         {
+            if (predicate == null)
+                return await _dbSet.CountAsync();
+
             return await _dbSet.CountAsync(predicate);
-        }
-
-        public virtual async Task<IEnumerable<T>> GetBySpecificationAsync(ISpecification<T> spec)
-        {
-            return await ApplySpecification(spec).ToListAsync();
-        }
-
-        public virtual async Task<T?> GetSingleBySpecificationAsync(ISpecification<T> spec)
-        {
-            return await ApplySpecification(spec).FirstOrDefaultAsync();
-        }
-
-        public virtual async Task<IEnumerable<T>> GetPagedAsync(int pageNumber, int pageSize)
-        {
-            return await _dbSet
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-        }
-
-        public virtual async Task<IEnumerable<T>> GetPagedWithPredicateAsync(
-            Expression<Func<T, bool>> predicate,
-            int pageNumber,
-            int pageSize)
-        {
-            return await _dbSet
-                .Where(predicate)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-        }
-
-        protected IQueryable<T> ApplySpecification(ISpecification<T> spec)
-        {
-            return SpecificationEvaluator<T>.GetQuery(_dbSet.AsQueryable(), spec);
         }
     }
 }

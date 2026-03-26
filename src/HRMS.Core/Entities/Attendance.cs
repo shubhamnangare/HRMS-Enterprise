@@ -14,7 +14,7 @@ namespace HRMS.Core.Entities
 
         public DateTime? CheckOutTime { get; set; }
 
-        public TimeSpan? TotalHours { get; set; }
+        public decimal? TotalHours { get; set; }
 
         public AttendanceStatus Status { get; set; }
 
