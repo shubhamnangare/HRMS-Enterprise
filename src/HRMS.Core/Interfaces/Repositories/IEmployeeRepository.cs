@@ -1,4 +1,5 @@
 ﻿using HRMS.Core.Entities;
+using HRMS.Core.Enums;
 
 namespace HRMS.Core.Interfaces.Repositories;
 
@@ -8,6 +9,7 @@ public interface IEmployeeRepository : IRepository<Employee>
     Task<Employee?> GetByEmployeeCodeAsync(string code);
     Task<Employee?> GetEmployeeWithDetailsAsync(int id);
     Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId);
+    Task<IEnumerable<Employee>> SearchEmployeesAsync(string? searchTerm,int? deptId, EmployeeStatus? status);
     Task<IEnumerable<Employee>> SearchEmployeesAsync(string? searchTerm);
     Task<IEnumerable<Employee>> GetEmployeesByDepartmentAsync(int departmentId);
     Task<IEnumerable<Employee>> GetEmployeesByManagerAsync(int managerId);

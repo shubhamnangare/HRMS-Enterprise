@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers
 {
-    [Authorize(Roles = "Admin,HR")]
+   // [Authorize(Roles = "Admin,HR")]
     public class EmployeeController : BaseController
     {
         private readonly IEmployeeService _employeeService;
@@ -269,7 +269,8 @@ namespace HRMS.Web.Controllers
             try
             {
                 var fileData = await _employeeService.ExportEmployeesToExcelAsync(searchDto);
-                return File(fileData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                return File(fileData,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"Employees_{DateTime.Now:yyyyMMdd}.xlsx");
             }
             catch (Exception ex)
@@ -279,7 +280,26 @@ namespace HRMS.Web.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> DownloadTemplate()
+        {
+            try
+            {
+                var template = await _employeeService.GetImportTemplateAsync();
+                return File(template,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"Employee_Import_Template_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading template");
+                AddErrorMessage("Failed to download template");
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Import(IFormFile file)
         {
             try
@@ -290,17 +310,33 @@ namespace HRMS.Web.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
+                var extension = Path.GetExtension(file.FileName).ToLower();
+                if (extension != ".xlsx" && extension != ".xls")
+                {
+                    AddErrorMessage("Please upload a valid Excel file (.xlsx or .xls)");
+                    return RedirectToAction(nameof(Index));
+                }
+
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 var count = await _employeeService.ImportEmployeesFromExcelAsync(memoryStream.ToArray());
 
-                AddSuccessMessage($"{count} employees imported successfully!");
+                if (count > 0)
+                {
+                    AddSuccessMessage($"{count} employees imported successfully!");
+                }
+                else
+                {
+                    AddWarningMessage("No employees were imported. Please check the file format and data.");
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error importing employees");
-                return HandleException(ex, "Failed to import employees");
+                AddErrorMessage($"Import failed: {ex.Message}");
+                return RedirectToAction(nameof(Index));
             }
         }
     }

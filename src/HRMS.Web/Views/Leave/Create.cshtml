@@ -1,0 +1,184 @@
+﻿@using HRMS.Core.DTOs.Leave
+@using HRMS.Core.Enums
+@model CreateLeaveRequestDto
+@{
+    ViewData["Title"] = "Apply for Leave";
+    var leaveBalance = ViewBag.LeaveBalance as LeaveBalanceDto;
+    var leaveTypes = ViewBag.LeaveTypes as IEnumerable<LeaveType>;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-plus-circle text-primary me-2"></i> Apply for Leave
+        </h1>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LeaveType" class="form-label">Leave Type <span class="text-danger">*</span></label>
+                                <select asp-for="LeaveType" class="form-select" required>
+                                    <option value="">-- Select Leave Type --</option>
+                                    @foreach (LeaveType type in leaveTypes)
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="LeaveType" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="IsPaid" class="form-label">Leave Type</label>
+                                <select asp-for="IsPaid" class="form-select">
+                                    <option value="true">Paid Leave</option>
+                                    <option value="false">Unpaid Leave</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StartDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                <input asp-for="StartDate" type="date" class="form-control" min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EndDate" class="form-label">End Date <span class="text-danger">*</span></label>
+                                <input asp-for="EndDate" type="date" class="form-control" min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea asp-for="Reason" class="form-control" rows="4" placeholder="Please provide reason for leave..." required></textarea>
+                            <span asp-validation-for="Reason" class="text-danger"></span>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> Weekends (Saturday and Sunday) are automatically excluded from leave days calculation.
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-paper-plane me-2"></i> Submit Request
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary px-4 ms-2">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Leave Balance Card -->
+            @if (leaveBalance != null)
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i> Leave Balance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var balance in leaveBalance.Balances)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>@balance.Value.LeaveTypeName</span>
+                                    <span class="fw-semibold">@balance.Value.Remaining / @balance.Value.TotalEntitled days</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    @{
+                                        var percentage = balance.Value.TotalEntitled > 0
+                                        ? (balance.Value.Used / balance.Value.TotalEntitled) * 100
+                                        : 0;
+                                    }
+                                    <div class="progress-bar @(balance.Value.Remaining < 5 ? "bg-warning" : "bg-success")"
+                                         role="progressbar"
+                                         style="width: @percentage%">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    Used: @balance.Value.Used days | Pending: @balance.Value.Pending days
+                                </small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Info Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i> Leave Policy
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Submit leave at least 2 days in advance
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Sick leave can be applied on same day
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Maximum 5 consecutive days for casual leave
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            Pending leaves require approval
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Calculate days automatically
+        $('#StartDate, #EndDate').on('change', function() {
+            var start = new Date($('#StartDate').val());
+            var end = new Date($('#EndDate').val());
+
+            if (start && end && start <= end) {
+                var days = 0;
+                var current = new Date(start);
+                while (current <= end) {
+                    var dayOfWeek = current.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Exclude Sunday (0) and Saturday (6)
+                        days++;
+                    }
+                    current.setDate(current.getDate() + 1);
+                }
+
+                if (days > 0) {
+                    $('#totalDays').html('<strong>' + days + ' day(s)</strong>');
+                } else {
+                    $('#totalDays').html('<span class="text-danger">No working days selected</span>');
+                }
+            }
+        });
+    </script>
+}

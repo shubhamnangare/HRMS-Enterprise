@@ -1,4 +1,5 @@
 ﻿using HRMS.Core.Entities;
+using HRMS.Core.Enums;
 using HRMS.Core.Interfaces.Repositories;
 using HRMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,40 @@ namespace HRMS.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Employee>> SearchEmployeesAsync(string? searchTerm, int? departmentId, EmployeeStatus? status)
+        {
+            var query = _dbSet.Where(e => !e.IsDeleted);
+
+            // Apply search term filter
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                searchTerm = searchTerm.ToLower();
+                query = query.Where(e =>
+                    e.FirstName.ToLower().Contains(searchTerm) ||
+                    e.LastName.ToLower().Contains(searchTerm) ||
+                    e.Email.ToLower().Contains(searchTerm) ||
+                    e.EmployeeCode.ToLower().Contains(searchTerm) ||
+                    (e.MiddleName != null && e.MiddleName.ToLower().Contains(searchTerm)));
+            }
+
+            // Apply department filter
+            if (departmentId.HasValue)
+            {
+                query = query.Where(e => e.DepartmentId == departmentId.Value);
+            }
+
+            // Apply status filter
+            if (status.HasValue)
+            {
+                query = query.Where(e => e.Status == status.Value);
+            }
+
+            return await query
+                .Include(e => e.Department)
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
+        }
         public async Task<IEnumerable<Employee>> GetEmployeesByDepartmentAsync(int departmentId)
         {
             return await _dbSet

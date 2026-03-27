@@ -1,0 +1,189 @@
+﻿@using HRMS.Core.Enums
+@model IEnumerable<LeaveRequestDto>
+@{
+    ViewData["Title"] = "My Leaves";
+    var statusFilter = ViewBag.SelectedStatus as LeaveStatus?;
+    var isAdmin = User.IsInRole("Admin") || User.IsInRole("HR");
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-calendar-alt text-primary me-2"></i>
+            @(isAdmin ? "All Leave Requests" : "My Leaves")
+        </h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i> Apply Leave
+        </a>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        @foreach (LeaveStatus status in Enum.GetValues(typeof(LeaveStatus)))
+                        {
+                            <option value="@status" selected="@(statusFilter == status)">
+                                @status
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="fromDate" class="form-control" value="@ViewBag.FromDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="toDate" class="form-control" value="@ViewBag.ToDate" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-search me-2"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leave Requests Table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            @if (isAdmin)
+                            {
+                                <th>Employee</th>
+                                <th>Department</th>
+                            }
+                            <th>Leave Type</th>
+                            <th>Duration</th>
+                            <th>Days</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            @foreach (var leave in Model)
+                            {
+                                <tr>
+                                    @if (isAdmin)
+                                    {
+                                        <td>
+                                            <div class="fw-semibold">@leave.EmployeeName</div>
+                                            <small class="text-muted">@leave.EmployeeCode</small>
+                                        </td>
+                                        <td>@leave.Department</td>
+                                    }
+                                    <td>
+                                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                                            @leave.LeaveType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @leave.StartDate.ToString("dd/MM/yyyy") - @leave.EndDate.ToString("dd/MM/yyyy")
+                                    </td>
+                                    <td class="fw-semibold">@leave.TotalDays days</td>
+                                    <td>
+                                        @if (leave.Reason?.Length > 30)
+                                        {
+                                            <span title="@leave.Reason">@leave.Reason.Substring(0, 30)...</span>
+                                        }
+                                        else
+                                        {
+                                            @leave.Reason
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var statusClass = leave.Status switch
+                                            {
+                                                "Approved" => "success",
+                                                "Pending" => "warning",
+                                                "Rejected" => "danger",
+                                                "Cancelled" => "secondary",
+                                                _ => "secondary"
+                                            };
+                                        }
+                                        <span class="badge bg-@statusClass bg-opacity-10 text-@statusClass px-3 py-2">
+                                            @leave.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@leave.Id" class="btn btn-outline-info" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if (leave.Status == "Pending")
+                                            {
+                                                <button type="button" class="btn btn-outline-danger"
+                                                        onclick="cancelLeave(@leave.Id, '@leave.StartDate.ToString("dd/MM/yyyy")')" title="Cancel">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            }
+                                            @if ((User.IsInRole("Admin") || User.IsInRole("HR")) && leave.Status == "Pending")
+                                            {
+                                                <a asp-action="Approve" asp-route-id="@leave.Id" class="btn btn-outline-success" title="Approve">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                                <a asp-action="Reject" asp-route-id="@leave.Id" class="btn btn-outline-danger" title="Reject">
+                                                    <i class="fas fa-ban"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="@(isAdmin ? 8 : 6)" class="text-center py-5">
+                                    <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">No leave requests found.</p>
+                                    <a asp-action="Create" class="btn btn-primary btn-sm mt-3">
+                                        <i class="fas fa-plus-circle me-1"></i> Apply for Leave
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="cancelForm" asp-action="Cancel" method="post" style="display:none;">
+    <input type="hidden" id="cancelId" name="id" />
+</form>
+
+@section Scripts {
+    <script>
+        function cancelLeave(id, startDate) {
+            Swal.fire({
+                title: 'Cancel Leave Request?',
+                html: `Are you sure you want to cancel your leave request starting on <strong>${startDate}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, cancel it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#cancelId').val(id);
+                    $('#cancelForm').submit();
+                }
+            });
+        }
+    </script>
+}

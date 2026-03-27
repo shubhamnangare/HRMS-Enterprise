@@ -1,0 +1,169 @@
+﻿@model LeaveBalanceDto
+@{
+    ViewData["Title"] = "Leave Balance";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-chart-pie text-primary me-2"></i> Leave Balance
+        </h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i> Apply for Leave
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i> @Model.EmployeeName
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var balance in Model.Balances)
+                        {
+                            var bgColor = balance.Value.Remaining <= 2 ? "danger" :
+                            balance.Value.Remaining <= 5 ? "warning" : "success";
+
+                            <div class="col-md-4 col-lg-3 mb-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <div class="mb-3">
+                                            @{
+                                                var icon = balance.Key.ToString() switch
+                                                {
+                                                    "Annual" => "fa-sun",
+                                                    "Sick" => "fa-thermometer-half",
+                                                    "Casual" => "fa-coffee",
+                                                    "Unpaid" => "fa-money-bill",
+                                                    _ => "fa-calendar-alt"
+                                                };
+                                            }
+                                            <i class="fas @icon fa-3x text-primary"></i>
+                                        </div>
+                                        <h5 class="card-title">@balance.Value.LeaveTypeName</h5>
+                                        <div class="display-4 fw-bold text-@bgColor">
+                                            @balance.Value.Remaining
+                                        </div>
+                                        <p class="text-muted mb-2">days remaining</p>
+                                        <hr />
+                                        <div class="row small">
+                                            <div class="col-6 text-start">
+                                                <span class="text-muted">Entitled:</span>
+                                                <br /><strong>@balance.Value.TotalEntitled</strong>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <span class="text-muted">Used:</span>
+                                                <br /><strong>@balance.Value.Used</strong>
+                                            </div>
+                                        </div>
+                                        @if (balance.Value.Pending > 0)
+                                        {
+                                            <div class="mt-2">
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i> @balance.Value.Pending days pending
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i> Leave Summary @DateTime.Now.Year
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="leaveChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Leave Balance Chart
+        var ctx = document.getElementById('leaveChart').getContext('2d');
+        var labels = [];
+        var used = [];
+        var remaining = [];
+
+        @foreach (var balance in Model.Balances)
+        {
+                <text>
+                labels.push('@balance.Value.LeaveTypeName');
+                used.push(@balance.Value.Used);
+                remaining.push(@balance.Value.Remaining);
+                </text>
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Used Days',
+                        data: used,
+                        backgroundColor: 'rgba(231, 74, 59, 0.7)',
+                        borderColor: '#e74a3b',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Remaining Days',
+                        data: remaining,
+                        backgroundColor: 'rgba(28, 200, 138, 0.7)',
+                        borderColor: '#1cc88a',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Days'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Leave Type'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + ' days';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

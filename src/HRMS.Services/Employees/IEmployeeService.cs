@@ -20,5 +20,6 @@ namespace HRMS.Services.Employees
         Task<int> ImportEmployeesFromExcelAsync(byte[] fileData);
         Task<IEnumerable<EmployeeListDto>> GetEmployeesByDepartmentAsync(int departmentId);
         Task<IEnumerable<EmployeeListDto>> GetEmployeesByManagerAsync(int managerId);
+        Task<byte[]> GetImportTemplateAsync();
     }
 }

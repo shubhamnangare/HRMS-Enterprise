@@ -97,7 +97,7 @@ namespace HRMS.Core.Entities
         public string? BankBranch { get; set; }
 
         // Foreign Keys
-        public int DepartmentId { get; set; }
+        public int? DepartmentId { get; set; }
 
         public int? ManagerId { get; set; }
 

@@ -22,16 +22,16 @@
                 <img src="~/images/profile.png" alt="HRMS" width="35" height="35" class="rounded-circle me-2">
                 <span class="fw-semibold">HRMS Enterprise</span>
             </a>
-                <!-- User Menu -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div></div>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <!-- This partial will be aligned to the right -->
                 <partial name="_LoginPartial" />
             </div>
         </div>
     </nav>
-    @{
-        var userName = User.Identity?.Name ?? "";
-        var truncatedName = userName.Length > 15 ? userName.Substring(0, 12) + "..." : userName;
-    }
-
     <!-- Sidebar -->
     <aside class="sidebar bg-white shadow-lg" style="position: fixed; top: 60px; left: 0; width: 260px; height: calc(100vh - 60px); overflow-y: auto; z-index: 1000;">
         <div class="p-3">
@@ -41,13 +41,13 @@
                     <span class="input-group-text bg-light border-0">
                         <i class="fas fa-search text-muted"></i>
                     </span>
-                    <input type="text" class="form-control bg-light border-0" placeholder="Search...">
+                    <input type="text" class="form-control bg-light border-0 search-input" placeholder="Search menu...">
                 </div>
             </div>
 
             <!-- Navigation Menu -->
             <nav>
-                <ul class="nav flex-column">
+                <ul class="nav flex-column" id="mainMenu">
                     <!-- Dashboard -->
                     <li class="nav-item mb-2">
                         <a href="@Url.Action("Index", "Dashboard")"
@@ -67,7 +67,7 @@
                             </div>
                             <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
                         </a>
-                        <div class="collapse show" id="employeesMenu">
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employee" ? "show" : "")" id="employeesMenu">
                             <div class="ms-4 mt-2">
                                 <a href="@Url.Action("Index", "Employee")"
                                    class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "bg-light text-primary" : "text-secondary")">
@@ -75,7 +75,11 @@
                                 </a>
                                 <a href="@Url.Action("Create", "Employee")"
                                    class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "bg-light text-primary" : "text-secondary")">
-                                    <i class="fas fa-plus me-2"></i> Add Employee
+                                    <i class="fas fa-user-plus me-2"></i> Add Employee
+                                </a>
+                                <a href="@Url.Action("Export", "Employee")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                    <i class="fas fa-file-export me-2"></i> Export Data
                                 </a>
                             </div>
                         </div>
@@ -91,7 +95,7 @@
                             </div>
                             <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
                         </a>
-                        <div class="collapse show" id="deptsMenu">
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Department" ? "show" : "")" id="deptsMenu">
                             <div class="ms-4 mt-2">
                                 <a href="@Url.Action("Index", "Department")"
                                    class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "bg-light text-primary" : "text-secondary")">
@@ -99,27 +103,177 @@
                                 </a>
                                 <a href="@Url.Action("Create", "Department")"
                                    class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "bg-light text-primary" : "text-secondary")">
-                                    <i class="fas fa-plus me-2"></i> Add Department
+                                    <i class="fas fa-plus-circle me-2"></i> Add Department
                                 </a>
                             </div>
                         </div>
                     </li>
 
+                    <!-- Leave Management Dropdown -->
+                    <li class="nav-item mb-2">
+                        <a href="#leaveMenu" data-bs-toggle="collapse"
+                           class="nav-link d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-dark">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calendar-alt me-3" style="width: 20px;"></i>
+                                <span>Leave Management</span>
+                            </div>
+                            <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                        </a>
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Leave" ? "show" : "")" id="leaveMenu">
+                            <div class="ms-4 mt-2">
+                                <a href="@Url.Action("Index", "Leave")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "bg-light text-primary" : "text-secondary")">
+                                    <i class="fas fa-list me-2"></i> My Leaves
+                                </a>
+                                <a href="@Url.Action("Create", "Leave")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "bg-light text-primary" : "text-secondary")">
+                                    <i class="fas fa-plus-circle me-2"></i> Apply Leave
+                                </a>
+                                <a href="@Url.Action("Balance", "Leave")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none @(ViewContext.RouteData.Values["action"]?.ToString() == "Balance" ? "bg-light text-primary" : "text-secondary")">
+                                    <i class="fas fa-chart-pie me-2"></i> Leave Balance
+                                </a>
+                                @if (User.IsInRole("Admin") || User.IsInRole("HR"))
+                                {
+                                    <a href="@Url.Action("Pending", "Leave")"
+                                       class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                        <i class="fas fa-clock me-2"></i> Pending Approvals
+                                        <span class="badge bg-warning text-dark ms-2" id="pendingCount">0</span>
+                                    </a>
+                                    <a href="@Url.Action("Calendar", "Leave")"
+                                       class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                        <i class="fas fa-calendar-week me-2"></i> Leave Calendar
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Attendance Dropdown (Optional - can add later) -->
+                    <li class="nav-item mb-2">
+                        <a href="#attendanceMenu" data-bs-toggle="collapse"
+                           class="nav-link d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-dark">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-clock me-3" style="width: 20px;"></i>
+                                <span>Attendance</span>
+                            </div>
+                            <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                        </a>
+                        <div class="collapse" id="attendanceMenu">
+                            <div class="ms-4 mt-2">
+                                <a href="@Url.Action("Index", "Attendance")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                    <i class="fas fa-calendar-check me-2"></i> My Attendance
+                                </a>
+                                <a href="@Url.Action("Report", "Attendance")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                    <i class="fas fa-chart-bar me-2"></i> Attendance Report
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Reports Dropdown (Optional - can add later) -->
+                    <li class="nav-item mb-2">
+                        <a href="#reportsMenu" data-bs-toggle="collapse"
+                           class="nav-link d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-dark">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-chart-line me-3" style="width: 20px;"></i>
+                                <span>Reports</span>
+                            </div>
+                            <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                        </a>
+                        <div class="collapse" id="reportsMenu">
+                            <div class="ms-4 mt-2">
+                                <a href="@Url.Action("EmployeeReport", "Report")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                    <i class="fas fa-users me-2"></i> Employee Report
+                                </a>
+                                <a href="@Url.Action("LeaveReport", "Report")"
+                                   class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                    <i class="fas fa-calendar-alt me-2"></i> Leave Report
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Separator -->
+                    <li class="nav-item mt-3 mb-2">
+                        <hr class="my-2">
+                    </li>
+
                     @if (User.IsInRole("Admin"))
                     {
-                        <li class="nav-item mt-3 mb-2">
-                            <small class="text-uppercase text-muted fw-bold px-3">Admin</small>
+                        <!-- Admin Section -->
+                        <li class="nav-item mt-2 mb-2">
+                            <small class="text-uppercase text-muted fw-bold px-3">Administration</small>
                         </li>
+
+                        <!-- User Management -->
                         <li class="nav-item mb-2">
                             <a href="@Url.Action("Index", "UserManagement")"
-                               class="nav-link d-flex align-items-center px-3 py-2 rounded-3 text-dark">
+                               class="nav-link d-flex align-items-center px-3 py-2 rounded-3 @(ViewContext.RouteData.Values["controller"]?.ToString() == "UserManagement" ? "active bg-primary text-white" : "text-dark")">
                                 <i class="fas fa-users-cog me-3" style="width: 20px;"></i>
                                 <span>User Management</span>
                             </a>
                         </li>
+
+                        <!-- Settings Dropdown -->
+                        <li class="nav-item mb-2">
+                            <a href="#settingsMenu" data-bs-toggle="collapse"
+                               class="nav-link d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-dark">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cog me-3" style="width: 20px;"></i>
+                                    <span>Settings</span>
+                                </div>
+                                <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                            </a>
+                            <div class="collapse" id="settingsMenu">
+                                <div class="ms-4 mt-2">
+                                    <a href="@Url.Action("Holidays", "Settings")"
+                                       class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                        <i class="fas fa-calendar me-2"></i> Holidays
+                                    </a>
+                                    <a href="@Url.Action("LeaveTypes", "Settings")"
+                                       class="d-block py-2 px-3 rounded-3 text-decoration-none text-secondary">
+                                        <i class="fas fa-tags me-2"></i> Leave Types
+                                    </a>
+                                </div>
+                            </div>
+                        </li>
                     }
+
+                    @* <!-- Profile Section -->
+                    <li class="nav-item mt-3 mb-2">
+                        <hr class="my-2">
+                    </li>
+                    <li class="nav-item mb-2">
+                        <small class="text-uppercase text-muted fw-bold px-3">Account</small>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a href="@Url.Action("Profile", "Account")"
+                           class="nav-link d-flex align-items-center px-3 py-2 rounded-3 text-dark">
+                            <i class="fas fa-user-circle me-3" style="width: 20px;"></i>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a href="@Url.Action("ChangePassword", "Account")"
+                           class="nav-link d-flex align-items-center px-3 py-2 rounded-3 text-dark">
+                            <i class="fas fa-key me-3" style="width: 20px;"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li> *@
                 </ul>
             </nav>
+
+            <!-- Footer Info -->
+            <div class="mt-4 pt-3 border-top">
+                <small class="text-muted d-block text-center">
+                    <i class="fas fa-chart-line me-1"></i> HRMS v1.0<br>
+                    © @DateTime.Now.Year HRMS Enterprise
+                </small>
+            </div>
         </div>
     </aside>
 
@@ -144,6 +298,20 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Warning"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Warning"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
         <!-- Page Content -->
         @RenderBody()
@@ -155,7 +323,45 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="~/js/site.js"></script>
 
-    <!-- This renders any scripts from the views -->
+    <script>
+        $(document).ready(function() {
+            // Search menu functionality
+            $('.search-input').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $('#mainMenu .nav-item').filter(function() {
+                    var text = $(this).text().toLowerCase();
+                    $(this).toggle(text.indexOf(value) > -1);
+                });
+            });
+
+            // Load pending leave count for HR/Admin
+            @if (User.IsInRole("Admin") || User.IsInRole("HR"))
+            {
+                <text>
+                $.get('@Url.Action("GetPendingCount", "Leave")', function(data) {
+                    if (data > 0) {
+                        $('#pendingCount').text(data).show();
+                    } else {
+                        $('#pendingCount').hide();
+                    }
+                }).fail(function() {
+                    $('#pendingCount').hide();
+                });
+                </text>
+            }
+
+            // Active menu highlighting
+            var currentUrl = window.location.pathname.toLowerCase();
+            $('.sidebar a').each(function() {
+                var href = $(this).attr('href');
+                if (href && href !== '#' && currentUrl.indexOf(href.toLowerCase()) >= 0) {
+                    $(this).addClass('active bg-primary text-white');
+                    $(this).closest('.collapse').addClass('show');
+                }
+            });
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
