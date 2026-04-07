@@ -75,7 +75,7 @@ namespace HRMS.Infrastructure.Data.Configurations
             builder.HasIndex(e => e.NationalId)
                 .IsUnique()
                 .HasDatabaseName("IX_Employees_NationalId")
-                .HasFilter("[NationalId] IS NOT NULL");
+                .HasFilter("\"NationalId\" IS NOT NULL");
 
             builder.Property(e => e.PassportNumber)
                 .HasMaxLength(20);
@@ -83,7 +83,7 @@ namespace HRMS.Infrastructure.Data.Configurations
             builder.HasIndex(e => e.PassportNumber)
                 .IsUnique()
                 .HasDatabaseName("IX_Employees_PassportNumber")
-                .HasFilter("[PassportNumber] IS NOT NULL");
+                .HasFilter("\"PassportNumber\" IS NOT NULL");
 
             // Professional Information
             builder.Property(e => e.JobTitle)

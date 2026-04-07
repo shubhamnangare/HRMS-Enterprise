@@ -31,7 +31,7 @@ namespace HRMS.Infrastructure.Data.Configurations
                 .IsRequired();
 
             builder.Property(l => l.ApprovedDate)
-                .HasColumnType("datetime2");
+                .HasColumnType("timestamp with time zone");
 
             // Indexes
             builder.HasIndex(l => l.EmployeeId)

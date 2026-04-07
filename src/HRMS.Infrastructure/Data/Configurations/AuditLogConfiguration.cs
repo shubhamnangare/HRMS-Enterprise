@@ -31,10 +31,10 @@ namespace HRMS.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.Property(a => a.OldValues)
-                .HasColumnType("nvarchar(max)");
+                .HasColumnType("text");
 
             builder.Property(a => a.NewValues)
-                .HasColumnType("nvarchar(max)");
+                .HasColumnType("text");
 
             builder.Property(a => a.IpAddress)
                 .HasMaxLength(50);
@@ -43,7 +43,6 @@ namespace HRMS.Infrastructure.Data.Configurations
                 .HasMaxLength(500);
 
             builder.Property(a => a.Timestamp)
-                .HasColumnType("datetime2")
                 .IsRequired();
 
             // Indexes for better query performance
