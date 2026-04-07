@@ -72,6 +72,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+
 // Default route to Dashboard
 app.MapControllerRoute(
     name: "default",
